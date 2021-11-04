@@ -40,6 +40,8 @@ def add_text_label_in_tab():
     form.verticalLayout_4.addWidget(form.label_name)
     form.label_name.setText(label_name)
 
+def select_theme():
+    form.pushButton.setEnabled(True)
 
 
 
@@ -49,7 +51,9 @@ form.actionExit.triggered.connect(on_exit)  # выход из приложени
 
 
 # КЛИК НА КНОПКЕ
-form.pushButton.clicked.connect(add_text_label_in_tab)  # выход из приложения
+# form.pushButton.clicked.connect(add_text_label_in_tab)  # выход из приложения
+
+form.comboBox.activated.connect(select_theme)
 
 
 
