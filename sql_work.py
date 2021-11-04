@@ -54,4 +54,34 @@ def new_project_in_base(name, about):
     sqlite_param = """INSERT INTO projects(name, about) 
        VALUES(?, ?);"""
     cur.execute(sqlite_param, data_insert)
+    last_id = cur.lastrowid
     conn.commit()
+    return last_id
+
+def check_new_project_name(new_project_name):
+
+    sql_select_query = """select * from projects where name like ?"""
+    cur.execute(sql_select_query, (new_project_name,))
+    records = cur.fetchall()
+    if len(records)>0:
+        return False
+    else:
+        return True
+
+def new_thread(name, prefix, starting_id, project_id):
+    data_insert = (name, prefix, starting_id, project_id)
+    sqlite_param = """INSERT INTO threads(name, prefix, starting_id, project_id) 
+       VALUES(?, ?, ?, ?);"""
+    cur.execute(sqlite_param, data_insert)
+    conn.commit()
+    return True
+
+def select_all_threads_in_project(project_id):
+    sql_select_query = """select * from threads where project_id like ?"""
+    cur.execute(sql_select_query, (project_id,))
+    records = cur.fetchall()
+    return records
+    # if len(records)>0:
+    #     return False
+    # else:
+    #     return True
