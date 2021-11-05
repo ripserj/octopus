@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QApplication, QDialog, QScrollArea, QFormLayout, QWi
 from new_project import Ui_Dialog as NewProjectDialog
 import random
 import sql_work as sw
+import unzip_unrar as uu
 
 Form, Window = uic.loadUiType("octopus_gui.ui")
 app = QApplication([])
@@ -36,6 +37,16 @@ class DialogNewProject(QDialog, NewProjectDialog):
             print('Такой проект уже есть!')
 
 
+def open_project():
+    global PROJECT_ID
+    try:
+
+        PROJECT_ID = sw.open_project()
+        form.tabWidget.setEnabled(True)
+    except:
+        print('Открыть существующий проект не удалось')
+
+
 def on_exit():
     exit()
 
@@ -65,12 +76,20 @@ def add_new_thread_in_project_list(project_id):
     all_threads = sw.select_all_threads_in_project(project_id)
     print(all_threads)
 
+    counter = 0
+    form.listWidget.clear()
     for elem in all_threads:
-        thread_label = 'thread_label_' + str(elem[0])
-        form.thread_label = QtWidgets.QLabel(form.verticalLayoutWidget_3)
-        form.thread_label.setObjectName(thread_label)
-        form.verticalLayout_5.addWidget(form.thread_label)
-        form.thread_label.setText(elem[1])
+        print(elem)
+        item = QtWidgets.QListWidgetItem()
+        item.setCheckState(QtCore.Qt.Checked)
+        thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2])+str(elem[3]) + '  ||'
+        item.setText(thread_info)
+        form.listWidget.addItem(item)
+        counter += 1
+
+
+def project_threads_load():
+    add_new_thread_in_project_list(PROJECT_ID)
 
 
 def add_new_thread_folder():
@@ -82,17 +101,22 @@ def add_new_thread_folder():
         try:
             sw.new_thread(name, prefix, starting_id, PROJECT_ID)
             print('Новая запись добавлена!')
+            try:
+                uu.create_dir(prefix + str(starting_id))
+                add_new_thread_in_project_list(PROJECT_ID)
 
+            except:
+                print('Создать папку для записи не удалось!')
         except:
             print('Ошибка записи в БД')
 
-        add_new_thread_in_project_list(PROJECT_ID)
     else:
         print('Данных нет')
 
 
 # СИГНАЛЫ В ПУНКТАХ МЕНЮ
 form.actionNew_project.triggered.connect(openDialog)  # Открыть новую форму
+form.actionOpen_project.triggered.connect(open_project)  # открытие существующего проекта
 form.actionExit.triggered.connect(on_exit)  # выход из приложения
 
 if CURRENT_PROJECT:
@@ -104,6 +128,8 @@ if CURRENT_PROJECT:
 form.comboBox.activated.connect(select_theme)
 
 form.pushButton_6.clicked.connect(add_new_thread_folder)
+
+form.pushButton_7.clicked.connect(project_threads_load)
 
 window.show()
 app.exec()

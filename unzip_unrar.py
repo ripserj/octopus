@@ -2,6 +2,13 @@ import time
 import zipfile
 import os
 
+ROOT_DIR = 'Resourse'
+
+def create_dir(folder):
+    folder = ROOT_DIR+'\\'+folder
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+
 
 def upload_txt(file_txt, header):
     with open(file_txt, 'r') as f:

@@ -81,7 +81,12 @@ def select_all_threads_in_project(project_id):
     cur.execute(sql_select_query, (project_id,))
     records = cur.fetchall()
     return records
-    # if len(records)>0:
-    #     return False
-    # else:
-    #     return True
+
+def open_project():
+    sql_select_query = """select * from projects LIMIT 1"""
+    cur.execute(sql_select_query)
+    records = cur.fetchall()
+    print(records)
+    for elem in records:
+        project_id = elem[0]
+    return project_id
