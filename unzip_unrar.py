@@ -4,6 +4,13 @@ import os
 
 ROOT_DIR = 'Resourse'
 
+def dir_exist(folder):
+    folder = ROOT_DIR+'\\'+folder
+    if not os.path.isdir(folder):
+        return False
+    else:
+        return True
+
 def create_dir(folder):
     folder = ROOT_DIR+'\\'+folder
     if not os.path.isdir(folder):

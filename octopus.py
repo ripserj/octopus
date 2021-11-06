@@ -1,19 +1,117 @@
 from PyQt5 import uic, QtWidgets, QtCore
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import QApplication, QDialog, QScrollArea, QFormLayout, QWidget, QLabel, QFrame, QVBoxLayout, \
-    QPushButton
+    QPushButton, QMessageBox
 from new_project import Ui_Dialog as NewProjectDialog
 import random
 import sql_work as sw
 import unzip_unrar as uu
+import main
+import time
+import img_upload
+import sys
+
+
+
+
 
 Form, Window = uic.loadUiType("octopus_gui.ui")
-app = QApplication([])
+
+app = QApplication(sys.argv)
+
+
 window = Window()
 form = Form()
 form.setupUi(window)
 
 CURRENT_PROJECT = False
 PROJECT_ID = False
+
+
+class CThread(QThread):
+    valueChanged = pyqtSignal([int])
+    def __init__(self,value):
+        super().__init__()
+        self.completed = value
+
+    def run(self):
+        while self.completed < 100:
+            self.completed += 1
+            self.msleep(100)
+            self.valueChanged.emit(self.completed)
+
+fill_thread = CThread(form.progressBar_6.value())
+fill_thread.valueChanged.connect(form.progressBar_6.setValue)
+
+
+def tab_load_data():
+    # ContentCheckAndUpload_instance.start()
+    fill_thread.start()
+
+
+
+
+class ContentCheckAndUpload(QThread):
+    def __init__(self):
+        self.project_id = PROJECT_ID
+        super().__init__()
+
+        self.folder = ''
+        self.set_date = ''
+        self.set_main = ''
+        self.photo_date = ''
+        self.file_date =''
+        self.file_names = ''
+        self.file_names_str=''
+
+    def run(self):
+        global PROJECT_ID
+        all_threads = sw.select_all
+
+        form.groupBox_5.setTitle(str(PROJECT_ID))
+        print(all_threads)
+        for elem in all_threads:
+
+            if uu.dir_exist(str(elem[2]) + str(elem[3])):
+                print('Устанавливаем имя ' + elem[1])
+                form.groupBox_5.setTitle(elem[1])
+                self.folder = elem[2] + str(elem[3])
+                ready, path = main.check_data_in_folder(self.folder)
+                if ready:
+                    form.label_24.setText("...   " + path + ".....folder checked!")
+                    old_text = form.label_24.text()
+                    self.set_date, self.set_main = main.set_name_search(path)
+                    form.label_24.setText(
+                        old_text + "      ||Date found:...   " + self.set_date + "   ||Set name:...   " + self.set_main)
+
+                    if sw.work_folder_in_base(self.folder):
+                        print('Такая рабочая папка уже есть в БД!')
+                    else:
+                        try:
+                            self.photo_date, self.file_date, self.file_names = main.unpack(path)
+                            print(self.photo_date, self.file_date, self.file_names)
+                        except:
+                            print('Распаковка сломалась!')
+                        try:
+                            self.file_names_str = self.file_names[2]+'  '+self.file_names[3]+'  '+self.file_names[4]
+
+                            print(self.file_names_str)
+                            sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date, self.file_date, self.file_names_str)
+                        except:
+                            print('В БД ничего не записано...')
+
+                        # try:
+                        #     img_upload.select_and_send_pics(path)
+                        #
+                        # except:
+                        #     print('Загрузка картинок не удалась!')
+
+                time.sleep(1)
+
+
+
+
 
 
 class DialogNewProject(QDialog, NewProjectDialog):
@@ -79,13 +177,20 @@ def add_new_thread_in_project_list(project_id):
     counter = 0
     form.listWidget.clear()
     for elem in all_threads:
+
+        print(uu.dir_exist(str(elem[2])+str(elem[3])))
+
+
         print(elem)
         item = QtWidgets.QListWidgetItem()
-        item.setCheckState(QtCore.Qt.Checked)
-        thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2])+str(elem[3]) + '  ||'
-        item.setText(thread_info)
-        form.listWidget.addItem(item)
-        counter += 1
+        if uu.dir_exist(str(elem[2])+str(elem[3])):
+            item.setCheckState(QtCore.Qt.Checked)
+            thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + '  ||'
+            item.setText(thread_info)
+            form.listWidget.addItem(item)
+            counter += 1
+        else:
+            print('Нет рабочей папки - '+str(elem[2])+str(elem[3]))
 
 
 def project_threads_load():
@@ -113,6 +218,19 @@ def add_new_thread_folder():
     else:
         print('Данных нет')
 
+# ContentCheckAndUpload_instance = ContentCheckAndUpload()
+
+# ProgressBarThread_instance = ProgressBarThread()
+#
+# def tab_load_data():
+#     # ContentCheckAndUpload_instance.start()
+#     ProgressBarThread_instance.start()
+
+
+    # main.load_data_main()
+
+
+
 
 # СИГНАЛЫ В ПУНКТАХ МЕНЮ
 form.actionNew_project.triggered.connect(openDialog)  # Открыть новую форму
@@ -131,5 +249,14 @@ form.pushButton_6.clicked.connect(add_new_thread_folder)
 
 form.pushButton_7.clicked.connect(project_threads_load)
 
+form.pushButton_9.clicked.connect(tab_load_data)
+
+
+
+
+
+# form.tabWidget.tabBarClicked[int].connect(tab_load_data)
+
 window.show()
 app.exec()
+

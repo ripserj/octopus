@@ -77,10 +77,11 @@ def new_thread(name, prefix, starting_id, project_id):
     return True
 
 def select_all_threads_in_project(project_id):
-    sql_select_query = """select * from threads where project_id like ?"""
+    sql_select_query = """select * from threads where project_id = ?"""
     cur.execute(sql_select_query, (project_id,))
     records = cur.fetchall()
     return records
+
 
 def open_project():
     sql_select_query = """select * from projects LIMIT 1"""
@@ -90,3 +91,39 @@ def open_project():
     for elem in records:
         project_id = elem[0]
     return project_id
+
+
+def select_all():
+    project_id = 20
+    sql_select_query = """select * from threads where project_id = ?"""
+    cur.execute(sql_select_query, (project_id,))
+    records = cur.fetchall()
+    print(records)
+    return records
+
+def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, file_names):
+    connn = sqlite3.connect('links.db')
+    curr = connn.cursor()
+    print(str(folder_date), str(folder_name))
+    data_insert = (folder_date, folder_name, work_folder, photo_date, file_date, file_names)
+    sqlite_param = """INSERT INTO post(folder_date, folder_name, work_folder, photo_date, file_date, files_name)
+       VALUES(?, ?, ?, ?, ?, ?);"""
+    curr.execute(sqlite_param, data_insert)
+    connn.commit()
+
+def work_folder_in_base(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+
+    sql_select_query = """select * from post where work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    if len(records) > 0:
+        return True
+    else:
+        return False
+
+
+
+
+
