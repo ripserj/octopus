@@ -45,6 +45,7 @@ def login_host():
         logins.FILE_HOST_GET,
         headers=headers)
     print(r.text)
+    return r.text
 
 
 # login_host()   # функция логина рабочая!!!
@@ -55,6 +56,7 @@ def progress(all_blocks):
     def callback(block):
         callback.blocks_uploaded += 1
         callback.uploaded += len(block)
+
         print(f'Загружено {round(100 * callback.blocks_uploaded / all_blocks)} %')
 
     callback.blocks_uploaded = 0
@@ -91,16 +93,7 @@ def upload_img(elem, path):
     response = requests.request("POST", url, data=payload, files=files)
 
     to_python = json.loads(response.text)
-    print(type(to_python), to_python)
-
-    sw.img_in_base(elem, to_python['th_url'], to_python['show_url'])
-
-    with open("upload-test.txt", 'r') as f:
-        pics_block = f.read()
-    pics_block = pics_block.replace('show_url' + elem, to_python['show_url'])
-    pics_block = pics_block.replace('th_url' + elem, to_python['th_url'])
-    with open("upload-test.txt", 'w') as f:
-        f.write(pics_block)
+    return to_python
 
 
 def make_text_links(otbor, variant, mode='w'):
@@ -182,7 +175,6 @@ def select_and_send_pics(path):
                 make_text_links(all_pics_vert[0:6], variant=3, mode='a')
                 otbor.extend(all_pics_vert[0:6])
 
-    for elem in otbor:
-        upload_img(elem, path)
 
-    return str(counter) + " pics\n"
+
+    return counter, otbor

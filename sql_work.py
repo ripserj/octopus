@@ -33,21 +33,37 @@ cur.execute("""CREATE TABLE IF NOT EXISTS projects(
    """)
 conn.commit()
 
+def update_post_info(post_id, zip_id, quantity):
 
-def img_in_base(elem, th_url, show_url):
-    data_insert = (elem, th_url, show_url)
-    sqlite_param = """INSERT INTO pics(name, thumb, show) 
-       VALUES(?, ?, ?);"""
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (quantity, zip_id, post_id)
+    sqlite_param = """Update post set pics_quantity = ?, zip_id = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
+
+def img_in_base(elem, th_url, show_url, postid):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_insert = (elem, th_url, show_url, postid)
+    sqlite_param = """INSERT INTO pics(name, thumb, show, post) 
+       VALUES(?, ?, ?, ?);"""
     cur.execute(sqlite_param, data_insert)
     conn.commit()
 
 
 def zip_in_base(name, size):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
     data_insert = (name, size)
     sqlite_param = """INSERT INTO zips(name, size) 
        VALUES(?, ?);"""
     cur.execute(sqlite_param, data_insert)
+    last_id = cur.lastrowid
     conn.commit()
+    return last_id
 
 def new_project_in_base(name, about):
     data_insert = (name, about)
@@ -93,12 +109,16 @@ def open_project():
     return project_id
 
 
-def select_all():
+def select_all(project_id):
     project_id = 20
-    sql_select_query = """select * from threads where project_id = ?"""
-    cur.execute(sql_select_query, (project_id,))
-    records = cur.fetchall()
-    print(records)
+    print(project_id)
+    connn = sqlite3.connect('links.db')
+    print(connn)
+    curr = connn.cursor()
+    print(curr)
+    sql_select_query = """select * from threads"""
+    curr.execute(sql_select_query)
+    records = curr.fetchall()
     return records
 
 def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, file_names):
@@ -109,7 +129,9 @@ def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, f
     sqlite_param = """INSERT INTO post(folder_date, folder_name, work_folder, photo_date, file_date, files_name)
        VALUES(?, ?, ?, ?, ?, ?);"""
     curr.execute(sqlite_param, data_insert)
+    last_id = curr.lastrowid
     connn.commit()
+    return last_id
 
 def work_folder_in_base(folder):
     conn = sqlite3.connect('links.db')
@@ -123,7 +145,17 @@ def work_folder_in_base(folder):
     else:
         return False
 
+def check_thread_in_posts(folder):
+    sql_select_query = """select url from post where work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    print(records[0][0])
 
+    if records[0][0]:
+        return True
+    else:
+        return False
 
+    # return records
 
 

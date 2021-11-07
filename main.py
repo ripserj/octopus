@@ -163,6 +163,9 @@ def check_data_in_folder(folder):
     path = os.path.join(ROOT_DIR, folder)
     if len(os.listdir(path)) == 1:  # В целевой папке один файл или папка
         return True, path
+    else:
+        return False, path
+
 
 def set_name_search(path):
     set_name = ""
@@ -193,6 +196,7 @@ def unpack(path):
 
             print("Архив удален, проверяю наличие вложенных папок...")
             photo_date, file_date, file_names  = rename_files(path, file_name, zip=1)
+            file_date = date_from_file_info
             # num_of_pics = img_upload.select_and_send_pics(path)
 
         else:
