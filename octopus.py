@@ -31,12 +31,25 @@ PROJECT_ID = 20
 
 
 class LinkThread(QThread):   # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
-    def __init__(self, value):
+    def __init__(self):
         super().__init__()
+        self.project_id = 20
+
 
     def run(self):
-        pass
 
+        all_threads = sw.select_all(self.project_id)
+        print(all_threads)
+        for elem in all_threads:
+            folder = str(elem[2]) + str(elem[3])
+            if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
+                print('Тред есть и готов к постингу')
+                haystack = img_upload.login_host()
+
+            elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
+                print('Тред есть и постинг выполнен')
+
+# TODO: ОСТАНОВИЛСЯ ЗДЕСЬ! ПОЛУЧАЕМ СТРАНИЦУ, ОСТАЛОСЬ НА НЕЙ НАЙТИ ССЫЛКИ НА ФАЙЛЫ.
 
 
 
@@ -294,20 +307,26 @@ def add_new_thread_in_project_list(project_id):
 def project_threads_load():
     add_new_thread_in_project_list(PROJECT_ID)
 
+
+zip_link_search = LinkThread()
+
 def check_table():
-    all_threads = sw.select_all_threads_in_project(PROJECT_ID)
-    print(all_threads)
-    for elem in all_threads:
-        folder = str(elem[2]) + str(elem[3])
-        if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
-            print('Тред есть и готов к постингу')
-            haystack = img_upload.login_host()
+    zip_link_search.start()
 
 
-
-
-        elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
-            print('Тред есть и постинг выполнен')
+    # all_threads = sw.select_all_threads_in_project(PROJECT_ID)
+    # print(all_threads)
+    # for elem in all_threads:
+    #     folder = str(elem[2]) + str(elem[3])
+    #     if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
+    #         print('Тред есть и готов к постингу')
+    #         haystack = img_upload.login_host()
+    #
+    #
+    #
+    #
+    #     elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
+    #         print('Тред есть и постинг выполнен')
 
 
 

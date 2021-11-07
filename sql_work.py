@@ -146,6 +146,8 @@ def work_folder_in_base(folder):
         return False
 
 def check_thread_in_posts(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
     sql_select_query = """select url from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
