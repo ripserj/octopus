@@ -17,6 +17,7 @@ import main
 import time
 import img_upload
 import sys
+from bs4 import BeautifulSoup
 
 Form, Window = uic.loadUiType("octopus_gui.ui")
 
@@ -30,26 +31,53 @@ CURRENT_PROJECT = False
 PROJECT_ID = 20
 
 
-class LinkThread(QThread):   # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
+class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
     def __init__(self):
         super().__init__()
         self.project_id = 20
 
-
     def run(self):
+        counter = 0
+        while form.checkBox_11.isChecked():
+            self.link_search()
+            counter += 1
+            print('Запрос номер ', counter)
+            time.sleep(40)
+        else:
+            self.link_search()
+
+    def link_search(self):
 
         all_threads = sw.select_all(self.project_id)
         print(all_threads)
         for elem in all_threads:
             folder = str(elem[2]) + str(elem[3])
+            zip_file = folder + '.zip'
             if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
+                print(zip_file)
                 print('Тред есть и готов к постингу')
-                haystack = img_upload.login_host()
+
+                try:
+                    haystack = img_upload.login_host()
+
+                    if zip_file in haystack:
+                        print('zip найден в ответе сервера')
+                        soup = BeautifulSoup(haystack, features="html.parser")
+
+                        for link in soup.find_all('a', {'title': zip_file}):
+                            zip_link = link.get('href')
+                            if zip_link:
+                                print(zip_link)
+                                sw.insert_zip_link(zip_link, zip_file)
+                        print('Обновляем счетчик starting_id')
+                        sw.starting_id(elem[2], elem[3])
+                except:
+                    print('Проблема с доступом к файл-хосту!')
+
+
 
             elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
                 print('Тред есть и постинг выполнен')
-
-# TODO: ОСТАНОВИЛСЯ ЗДЕСЬ! ПОЛУЧАЕМ СТРАНИЦУ, ОСТАЛОСЬ НА НЕЙ НАЙТИ ССЫЛКИ НА ФАЙЛЫ.
 
 
 
@@ -92,10 +120,8 @@ class ContentCheckAndUpload(QThread):
         form.groupBox_5.setTitle(str(PROJECT_ID))
         print(all_threads)
 
-
-
         for elem in all_threads:
-           if uu.dir_exist(str(elem[2]) + str(elem[3])):
+            if uu.dir_exist(str(elem[2]) + str(elem[3])):
                 fill_thread.reset()
                 fill_thread2.reset()
                 print('Устанавливаем имя ' + elem[1])
@@ -124,7 +150,6 @@ class ContentCheckAndUpload(QThread):
                 fill_thread.target = 7
                 fill_thread.start()
 
-
                 if sw.work_folder_in_base(self.folder):
                     print('Такая рабочая папка уже есть в БД!')
                     break
@@ -135,19 +160,20 @@ class ContentCheckAndUpload(QThread):
                     except:
                         print('Распаковка сломалась!')
                     try:
-                        self.file_names_str = self.file_names[2]+'  '+self.file_names[3]+'  '+self.file_names[4]
+                        self.file_names_str = self.file_names[2] + '  ' + self.file_names[3] + '  ' + self.file_names[4]
 
                         print(self.file_names_str)
-                        self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date, self.file_date, self.file_names_str)
+                        self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date,
+                                                       self.file_date, self.file_names_str)
                     except:
                         print('В БД ничего не записано...')
                     fill_thread.target = 20
                     fill_thread.start()
-                    print('self.post_id=',self.post_id)
+                    print('self.post_id=', self.post_id)
 
                     try:
                         quantity, otbor = img_upload.select_and_send_pics(path)
-                        print('Количество картинок - '+str(quantity))
+                        print('Количество картинок - ' + str(quantity))
                         print(otbor)
                         fill_thread.target = 32
                         fill_thread.start()
@@ -157,11 +183,10 @@ class ContentCheckAndUpload(QThread):
                     for elem in otbor:
                         to_python = img_upload.upload_img(elem, path)
                         print(to_python)
-                        print('загружаю '+elem)
+                        print('загружаю ' + elem)
                         fill_thread.target += 7
                         fill_thread.start()
                         sw.img_in_base(elem, to_python['th_url'], to_python['show_url'], self.post_id)
-
 
                 time.sleep(1)
                 print('Формируем архив')
@@ -191,8 +216,6 @@ class ContentCheckAndUpload(QThread):
 
                 else:
                     print("Программа прервана, проверьте папку " + path)
-
-
 
 
 fill_thread = CThread(form.progressBar_5.value())
@@ -310,9 +333,9 @@ def project_threads_load():
 
 zip_link_search = LinkThread()
 
+
 def check_table():
     zip_link_search.start()
-
 
     # all_threads = sw.select_all_threads_in_project(PROJECT_ID)
     # print(all_threads)
@@ -327,8 +350,6 @@ def check_table():
     #
     #     elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
     #         print('Тред есть и постинг выполнен')
-
-
 
 
 def add_new_thread_folder():

@@ -36,7 +36,7 @@ def login_host():
     session.headers = headers
 
     response = session.post(logins.FILE_HOST_URL, data=auth, headers=headers)
-    print(response.text)
+    # print(response.text)
 
     time.sleep(randint(10, 15))
     print("=================================================================")
@@ -44,7 +44,7 @@ def login_host():
     r = session.get(
         logins.FILE_HOST_GET,
         headers=headers)
-    print(r.text)
+    # print(r.text)
     return r.text
 
 

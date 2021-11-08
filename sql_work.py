@@ -42,6 +42,23 @@ def update_post_info(post_id, zip_id, quantity):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
+def starting_id(prefix, starting_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (starting_id+1, prefix, starting_id)
+    sqlite_param = """Update threads set starting_id = ? where prefix = ?  and starting_id = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
+def insert_zip_link(zip_link, zipfile):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (zip_link, zipfile)
+    sqlite_param = """Update zips set link = ? where name = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
 
 
 def img_in_base(elem, th_url, show_url, postid):
