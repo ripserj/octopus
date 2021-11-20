@@ -75,6 +75,8 @@ def ftp_upload(file_name):
     print("конец загрузки файла", file_name)
 
 
+# ftp_upload('1.mp4')
+
 # ftp_upload()  функция рабочая, можно допилить прогресс загрузки
 
 

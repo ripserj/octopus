@@ -3,10 +3,11 @@ import os
 from ftplib import FTP
 
 from PyQt5 import uic, QtWidgets, QtCore
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import QApplication, QDialog, QScrollArea, QFormLayout, QWidget, QLabel, QFrame, QVBoxLayout, \
     QPushButton, QMessageBox
+from PyQt5.uic.properties import QtGui
 
 import logins
 from new_project import Ui_Dialog as NewProjectDialog
@@ -38,6 +39,14 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
 
     def run(self):
         counter = 0
+        for row in range(20):
+            for column in range(20):
+
+                item = QtWidgets.QTableWidgetItem()
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                form.tableWidget.setItem(row, column, item)
+
+
         while form.checkBox_11.isChecked():
             self.link_search()
             counter += 1
@@ -48,17 +57,37 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
 
     def link_search(self):
 
+
+
         all_threads = sw.select_all(self.project_id)
         print(all_threads)
+        counter = 0
+        zip_uploaded_yes = 0
+
         for elem in all_threads:
             folder = str(elem[2]) + str(elem[3])
             zip_file = folder + '.zip'
-            if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
-                print(zip_file)
+
+
+
+            # print(sw.check_thread_in_posts(folder))
+
+            if uu.dir_exist(folder) and sw.check_zip_file(zip_file):
+
+                print('запрос c папкой ', folder)
+                post_info = sw.select_info_from_post(folder)
+                zip_info = sw.select_info_from_zip(zip_file)
+                print('+++++++++++++')
+                print(post_info)
+                print(zip_info)
                 print('Тред есть и готов к постингу')
 
+
+
+                print('counter = ',counter)
                 try:
                     haystack = img_upload.login_host()
+
 
                     if zip_file in haystack:
                         print('zip найден в ответе сервера')
@@ -69,15 +98,45 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                             if zip_link:
                                 print(zip_link)
                                 sw.insert_zip_link(zip_link, zip_file)
-                        print('Обновляем счетчик starting_id')
-                        sw.starting_id(elem[2], elem[3])
+
+                        item = form.tableWidget.item(counter, 4)
+                        item.setText('YES')
+                        zip_uploaded_yes += 1
+                    else:
+                        item = form.tableWidget.item(counter, 4)
+                        item.setText('NO')
+
+
                 except:
                     print('Проблема с доступом к файл-хосту!')
 
+                try:
 
+                    item = form.tableWidget.item(counter, 0)
+                    item.setText(str(elem[1]))
+                    item = form.tableWidget.item(counter, 1)
+                    item.setText(folder)
+                    item = form.tableWidget.item(counter, 2)
+                    size = round((int(zip_info[0][2]))/1048576, 2)
+                    item.setText(str(post_info[0][10])+' pics,     '+str(size)+' Mb')
+                    item = form.tableWidget.item(counter, 3)
+                    item.setText(str(zip_info[0][0]))
+                    print('успешно!')
+                except:
+                    print('не удалось обработать пост № '+str(post_info[0][0]))
+
+
+                counter += 1
 
             elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
                 print('Тред есть и постинг выполнен')
+                print('Обновляем счетчик starting_id')
+                sw.starting_id(elem[2], elem[3])
+
+
+
+        if counter == 0 or zip_uploaded_yes == counter:
+            form.checkBox_11.setChecked(False)
 
 
 
@@ -121,7 +180,8 @@ class ContentCheckAndUpload(QThread):
         print(all_threads)
 
         for elem in all_threads:
-            if uu.dir_exist(str(elem[2]) + str(elem[3])):
+            current_dir = str(elem[2]) + str(elem[3])
+            if uu.dir_exist(current_dir) and uu.check_dir(current_dir):
                 fill_thread.reset()
                 fill_thread2.reset()
                 print('Устанавливаем имя ' + elem[1])
@@ -180,6 +240,17 @@ class ContentCheckAndUpload(QThread):
                     except:
                         print('Отбор картинок провален!!!')
 
+                    # считываем каркас поста из текстового файла
+                    ut_text = ''
+                    try:
+                        with open('upload-test.txt', 'r') as ut:
+                            ut_text = ut.read()
+
+
+                    except:
+                        print('Невозможно прочитать файл upload-test.txt')
+
+
                     for elem in otbor:
                         to_python = img_upload.upload_img(elem, path)
                         print(to_python)
@@ -187,6 +258,16 @@ class ContentCheckAndUpload(QThread):
                         fill_thread.target += 7
                         fill_thread.start()
                         sw.img_in_base(elem, to_python['th_url'], to_python['show_url'], self.post_id)
+
+                        ut_text = ut_text.replace('show_url'+elem, to_python['show_url'])
+                        ut_text = ut_text.replace('th_url' + elem, to_python['th_url'])
+
+                    print(ut_text)
+                    sw.save_message(self.post_id, ut_text)
+
+
+
+
 
                 time.sleep(1)
                 print('Формируем архив')
@@ -198,20 +279,26 @@ class ContentCheckAndUpload(QThread):
                 fill_thread.target = 100
                 fill_thread.start()
 
-                if size > 1:
-                    size = os.path.getsize(file_name)
-                    ftp = FTP(logins.FTP_HOST)
-                    response = ftp.login(logins.FTP_LOGIN, logins.FTP_PASS)
 
-                    print(response)
-                    with open(file_name, 'rb') as f:
-                        ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(size / 262144))
-                    print("конец загрузки файла", file_name)
+                if size > 1:
+                    print('ЗДЕСЬ')
+                    try:
+                        size = os.path.getsize(file_name)
+                        ftp = FTP(logins.FTP_HOST)
+                        response = ftp.login(logins.FTP_LOGIN, logins.FTP_PASS)
+
+                        print(response)
+                        with open(file_name, 'rb') as f:
+                            ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(size / 262144))
+                        print("конец загрузки файла", file_name)
+                    except:
+                        print('Проблемы со связью по FTP')
 
                     temp_name = file_name.split('\\')
                     name = temp_name[len(temp_name) - 1]
                     zip_id = sw.zip_in_base(name, str(size))
                     sw.update_post_info(self.post_id, zip_id, quantity)
+
 
 
                 else:
@@ -301,8 +388,8 @@ def add_text_label_in_tab():
     form.label_name.setText(label_name)
 
 
-def select_theme():
-    form.pushButton.setEnabled(True)
+# def select_theme():
+#     form.pushButton.setEnabled(True)
 
 
 def add_new_thread_in_project_list(project_id):
@@ -312,23 +399,73 @@ def add_new_thread_in_project_list(project_id):
     counter = 0
     form.listWidget.clear()
     for elem in all_threads:
+        current_dir = str(elem[2]) + str(elem[3])
 
-        print(uu.dir_exist(str(elem[2]) + str(elem[3])))
+        print(uu.dir_exist(current_dir))
 
         print(elem)
         item = QtWidgets.QListWidgetItem()
-        if uu.dir_exist(str(elem[2]) + str(elem[3])):
-            item.setCheckState(QtCore.Qt.Checked)
-            thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + '  ||'
-            item.setText(thread_info)
-            form.listWidget.addItem(item)
-            counter += 1
+        print(uu.check_dir(current_dir))
+
+        if uu.dir_exist(current_dir):
+            if uu.check_dir(current_dir):
+                item.setCheckState(QtCore.Qt.Checked)
+                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20*' . '+'READY!'
+                item.setText(thread_info)
+                form.listWidget.addItem(item)
+                counter += 1
+            else:
+                item.setCheckState(QtCore.Qt.Unchecked)
+                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50*' . '+'empty!'
+                item.setText(thread_info)
+                form.listWidget.addItem(item)
+                counter += 1
+                print('Папка '+current_dir+' пуста!')
+
         else:
             print('Нет рабочей папки - ' + str(elem[2]) + str(elem[3]))
+
+def save_place_thread():
+    if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip():
+        thread_id = form.comboBox_2.currentData()
+        place_id = form.comboBox_3.currentData()
+        link_url = form.lineEdit_17.text().strip()
+        sw.save_place_thread(thread_id[0], place_id[0], link_url)
+        print(form.comboBox_2.currentData())
+        print(form.comboBox_3.currentData())
+    else:
+        print('Need more information!')
+        form.label_38.setText('Need more info!')
+
+
+
+
+def places_for_post_load(project_id):
+    places = sw.select_data_from_forums(project_id)
+    form.comboBox.clear()
+    form.comboBox.addItem('Not selected', 0)
+    form.comboBox_3.clear()
+    form.comboBox_3.addItem('Not selected', 0)
+    form.comboBox_2.clear()
+    form.comboBox_2.addItem('Not selected', 0)
+
+    for elem in places:
+        form.comboBox.addItem(elem[1], elem)
+        form.comboBox_3.addItem(elem[1], elem)
+
+    all_threads = sw.select_all_threads_in_project(project_id)
+
+    for elem in all_threads:
+        form.comboBox_2.addItem(elem[1], elem)
+
+
+
 
 
 def project_threads_load():
     add_new_thread_in_project_list(PROJECT_ID)
+    places_for_post_load(PROJECT_ID)
+
 
 
 zip_link_search = LinkThread()
@@ -337,19 +474,7 @@ zip_link_search = LinkThread()
 def check_table():
     zip_link_search.start()
 
-    # all_threads = sw.select_all_threads_in_project(PROJECT_ID)
-    # print(all_threads)
-    # for elem in all_threads:
-    #     folder = str(elem[2]) + str(elem[3])
-    #     if uu.dir_exist(folder) and not sw.check_thread_in_posts(folder):
-    #         print('Тред есть и готов к постингу')
-    #         haystack = img_upload.login_host()
-    #
-    #
-    #
-    #
-    #     elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
-    #         print('Тред есть и постинг выполнен')
+
 
 
 def add_new_thread_folder():
@@ -374,6 +499,36 @@ def add_new_thread_folder():
         print('Данных нет')
 
 
+def load_current_place():
+    x = form.comboBox.currentData()
+
+    print(x)
+    if x:
+        print(x[1])
+        form.label_34.setText(str(x[0]))
+        form.lineEdit_14.setText(str(x[1]))
+        form.lineEdit_15.setText(str(x[2]))
+        form.lineEdit_16.setText(str(x[5]))
+        form.textEdit_3.setText(str(x[4]))
+    else:
+        form.lineEdit_14.setText('')
+        form.lineEdit_15.setText('')
+        form.textEdit_3.setText('')
+        form.label_34.setText('')
+        form.lineEdit_16.setText('')
+
+def load_current_place_thread():
+    x = form.comboBox_2.currentData()
+    y = form.comboBox_3.currentData()
+    print('x:', type(x))
+    print('y', type(y))
+    if isinstance(x, tuple)  and isinstance(y, tuple):
+        print('Это тюплы!')
+        url_link = sw.select_current_place_thread(x[0], y[0])
+        form.lineEdit_17.setText(url_link)
+        print(url_link)
+
+
 # СИГНАЛЫ В ПУНКТАХ МЕНЮ
 form.actionNew_project.triggered.connect(openDialog)  # Открыть новую форму
 form.actionOpen_project.triggered.connect(open_project)  # открытие существующего проекта
@@ -385,7 +540,7 @@ if CURRENT_PROJECT:
 # КЛИК НА КНОПКЕ
 # form.pushButton.clicked.connect(add_text_label_in_tab)  # выход из приложения
 
-form.comboBox.activated.connect(select_theme)
+# form.comboBox.activated.connect(select_theme)
 
 form.pushButton_6.clicked.connect(add_new_thread_folder)
 
@@ -395,7 +550,93 @@ form.pushButton_8.clicked.connect(check_table)
 
 form.pushButton_9.clicked.connect(tab_load_data)
 
-# form.tabWidget.tabBarClicked[int].connect(tab_load_data)
+form.pushButton_100.clicked.connect(main.reset_data)
+
+form.pushButton_save_ft.clicked.connect(save_place_thread)
+
+form.comboBox.currentIndexChanged.connect(load_current_place)
+
+form.comboBox_2.currentIndexChanged.connect(load_current_place_thread)
+form.comboBox_3.currentIndexChanged.connect(load_current_place_thread)
+
+
+def save_place():
+    print('Save place')
+    try:
+        name = form.lineEdit_14.text().strip()
+        login_url = form.lineEdit_15.text().strip()
+        inputs = form.textEdit_3.toPlainText().strip()
+        userid = form.lineEdit_16.text().strip()
+
+        if name and login_url and inputs and userid:
+
+            if form.label_34.text():
+                sw.update_place_in_bd(name, login_url, inputs, userid, form.label_34.text())
+
+            else:
+                sw.save_place_in_bd(name, login_url, inputs, userid, PROJECT_ID)
+        else:
+            print('Не верные данные')
+
+
+        print('Success save')
+        places_for_post_load(PROJECT_ID)
+    except:
+        print('No save')
+
+
+form.pushButton_save.clicked.connect(save_place)
+
+
+
+def view_cell(row, cell):
+    print('Клик по клетке!', row, cell)
+
+    try:
+        item = form.tableWidget.item(row, 0)
+        post_name = item.text()
+        item = form.tableWidget.item(row, 1)
+        folder = item.text()
+        item = form.tableWidget.item(row, 2)
+        size_nums = item.text()
+
+
+    except:
+        print('вылет')
+
+    form.lineEdit.setText(post_name)
+    form.lineEdit_2.setText(folder)
+    form.lineEdit_5.setText(size_nums)
+
+    try:
+        full_post_info = sw.select_info_from_post(folder)
+        form.lineEdit_3.setText(full_post_info[0][5])
+        form.lineEdit_4.setText(full_post_info[0][6])
+        form.lineEdit_6.setText(full_post_info[0][7])
+        form.lineEdit_7.setText(full_post_info[0][8])
+        form.lineEdit_8.setText(full_post_info[0][9])
+        form.textEdit.setText(full_post_info[0][3])
+
+
+
+
+
+    except:
+        print('Что-то с БД')
+
+
+
+    form.tabWidget.setCurrentIndex(3)
+
+
+
+
+
+
+
+form.tableWidget.cellDoubleClicked.connect(view_cell)
+
+
 
 window.show()
 app.exec()

@@ -4,6 +4,12 @@ import os
 
 ROOT_DIR = 'Resourse'
 
+def check_dir(current_dir):
+
+    check_dir = os.path.join(ROOT_DIR, current_dir)
+    return len(os.listdir(check_dir))
+
+
 def dir_exist(folder):
     folder = ROOT_DIR+'\\'+folder
     if not os.path.isdir(folder):

@@ -59,7 +59,37 @@ def insert_zip_link(zip_link, zipfile):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
+def save_message(post_id, ut_text):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (ut_text, post_id)
+    sqlite_param = """Update post set message = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
 
+def save_place_in_bd(name, login_url, inputs, userid, project_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    print(inputs)
+    clear_string = ''
+    for x in inputs.split(','):
+        if clear_string:
+            clear_string = clear_string+','+ x.strip()
+        else:
+            clear_string = x.strip()
+
+    data_insert = (name, login_url, clear_string, userid, project_id)
+    sqlite_param = """INSERT INTO forums(name, login_url, inputs, userid, project_id)
+       VALUES(?, ?, ?, ?, ?);"""
+    cur.execute(sqlite_param, data_insert)
+    conn.commit()
+
+
+# r = dict()
+# for elem in clear_string.split(','):
+#     x = elem.split(':')
+#     r[x[0]] = x[1]
+# print(r)
 
 def img_in_base(elem, th_url, show_url, postid):
     conn = sqlite3.connect('links.db')
@@ -165,6 +195,29 @@ def work_folder_in_base(folder):
 def check_thread_in_posts(folder):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
+    sql_select_query = """select url from post where url not NULL and work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    if records:
+        return True
+    else:
+        return False
+
+def check_zip_file(zip_file):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from zips where name = ?"""     # убрал link is NULL and
+    cur.execute(sql_select_query, (zip_file,))
+    records = cur.fetchall()
+    if records:
+        return True
+    else:
+        return False
+
+
+def check_ready_for_post(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
     sql_select_query = """select url from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
@@ -175,6 +228,85 @@ def check_thread_in_posts(folder):
     else:
         return False
 
-    # return records
+def select_folders_in_current_project():
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select prefix, starting_id from threads where project_id = 20"""
+    cur.execute(sql_select_query)
+    records = cur.fetchall()
+    print(records)
+    return records
 
 
+def select_info_from_post(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from post where work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    print(records)
+    return records
+
+def select_info_from_zip(zip_file):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from zips where name = ?"""
+    cur.execute(sql_select_query, (zip_file,))
+    records = cur.fetchall()
+    print(records)
+    return records
+
+def select_data_from_forums(project_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from forums where project_id = ?"""
+    cur.execute(sql_select_query, (project_id,))
+    records = cur.fetchall()
+    print(records)
+    return records
+
+def update_place_in_bd(name, login_url, inputs, userid, id):
+    print(name, login_url, inputs, userid, id)
+
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (name, login_url, inputs, userid, int(id))
+    sqlite_param = """Update forums set name = ?, login_url = ?, inputs = ?, userid = ?  where id = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
+def save_place_thread(thread_id, place_id, link_url):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
+    cur.execute(sql_select_query, (thread_id, place_id,))
+    records = cur.fetchall()
+    print('records:', records)
+    if len(records) > 0:
+        data_update = (link_url, place_id, thread_id)
+        sqlite_param = """Update forums_threads set url = ?  where forums = ? AND threads = ?"""
+        cur.execute(sqlite_param, data_update)
+        conn.commit()
+
+    else:
+        data_insert = (place_id, thread_id, link_url)
+        sqlite_param = """INSERT INTO forums_threads (forums, threads, url) 
+           VALUES(?, ?, ?);"""
+        cur.execute(sqlite_param, data_insert)
+        last_id = cur.lastrowid
+        conn.commit()
+        return last_id
+
+def select_current_place_thread(thread_id, place_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
+    cur.execute(sql_select_query, (thread_id, place_id,))
+    records = cur.fetchall()
+    if len(records) > 0:
+        print('records22:', records)
+        return records[0][3]
+
+
+select_current_place_thread(63, 12)

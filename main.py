@@ -13,6 +13,24 @@ from logins import ROOT_DIR, YEAR_IN_THE_PAST, BACKUP_DIR
 now = datetime.datetime.now()
 
 
+def reset_data():
+    print('Clear data in ', ROOT_DIR)
+    if os.path.isdir(ROOT_DIR):
+        shutil.rmtree(ROOT_DIR)
+        print('Удаление')
+    time.sleep(1)
+    if not os.path.isdir(ROOT_DIR):
+        print('Создание')
+        os.mkdir(ROOT_DIR)
+        folders_in_project = sw.select_folders_in_current_project()
+        for elem in folders_in_project:
+            print(elem[0]+str(elem[1]))
+            full_path = os.path.join(ROOT_DIR, elem[0]+str(elem[1]))
+            os.mkdir(full_path)
+
+
+
+
 def clear_all(home):
     for root, dirs, files in os.walk(home):
         for elem in files:  # ищем архив и переносим его в корень
