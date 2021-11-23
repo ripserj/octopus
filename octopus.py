@@ -102,10 +102,10 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                         item = form.tableWidget.item(counter, 4)
                         item.setText('YES')
                         zip_uploaded_yes += 1
+
                     else:
                         item = form.tableWidget.item(counter, 4)
                         item.setText('NO')
-
 
                 except:
                     print('Проблема с доступом к файл-хосту!')
@@ -117,10 +117,11 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                     item = form.tableWidget.item(counter, 1)
                     item.setText(folder)
                     item = form.tableWidget.item(counter, 2)
-                    size = round((int(zip_info[0][2]))/1048576, 2)
-                    item.setText(str(post_info[0][10])+' pics,     '+str(size)+' Mb')
+                    size = str(round((int(zip_info[0][2]))/1048576, 2))
+
+                    item.setText(str(post_info[0][10])+' pics,     '+size+' Mb')
                     item = form.tableWidget.item(counter, 3)
-                    item.setText(str(zip_info[0][0]))
+                    item.setText(str(zip_info[0][0])+',  '+str(elem[0])+',  '+str(post_info[0][0]))
                     print('успешно!')
                 except:
                     print('не удалось обработать пост № '+str(post_info[0][0]))
@@ -128,10 +129,10 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
 
                 counter += 1
 
-            elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
-                print('Тред есть и постинг выполнен')
-                print('Обновляем счетчик starting_id')
-                sw.starting_id(elem[2], elem[3])
+            # elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
+            #     print('Тред есть и постинг выполнен')
+            #     print('Обновляем счетчик starting_id')
+            #     sw.starting_id(elem[2], elem[3])
 
 
 
@@ -172,6 +173,7 @@ class ContentCheckAndUpload(QThread):
         self.file_names = ''
         self.file_names_str = ''
         self.post_id = ''
+        self.thread = 50
 
     def run(self):
         print('self.project_id=', self.project_id)
@@ -181,6 +183,7 @@ class ContentCheckAndUpload(QThread):
 
         for elem in all_threads:
             current_dir = str(elem[2]) + str(elem[3])
+            self.thread = elem[0]
             if uu.dir_exist(current_dir) and uu.check_dir(current_dir):
                 fill_thread.reset()
                 fill_thread2.reset()
@@ -224,7 +227,7 @@ class ContentCheckAndUpload(QThread):
 
                         print(self.file_names_str)
                         self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date,
-                                                       self.file_date, self.file_names_str)
+                                                       self.file_date, self.file_names_str, self.thread)
                     except:
                         print('В БД ничего не записано...')
                     fill_thread.target = 20
@@ -576,7 +579,7 @@ def save_place():
             else:
                 sw.save_place_in_bd(name, login_url, inputs, userid, PROJECT_ID)
         else:
-            print('Не верные данные')
+            print('Неверные данные')
 
 
         print('Success save')
@@ -589,8 +592,8 @@ form.pushButton_save.clicked.connect(save_place)
 
 
 
-def view_cell(row, cell):
-    print('Клик по клетке!', row, cell)
+def view_info_from_cell(row):
+
 
     try:
         item = form.tableWidget.item(row, 0)
@@ -599,14 +602,56 @@ def view_cell(row, cell):
         folder = item.text()
         item = form.tableWidget.item(row, 2)
         size_nums = item.text()
+        item = form.tableWidget.item(row, 3)
+        all_id = item.text()
 
 
     except:
         print('вылет')
 
-    form.lineEdit.setText(post_name)
-    form.lineEdit_2.setText(folder)
-    form.lineEdit_5.setText(size_nums)
+    try:
+        form.lineEdit.setText(post_name)
+        form.lineEdit_2.setText(folder)
+        form.lineEdit_5.setText(size_nums)
+
+        x = all_id.split(',')
+        thread_id = x[1].strip()
+
+        print(thread_id)
+        checkbox_dict = dict()
+        places_for_post = sw.select_places_for_thread(thread_id)
+        print("places_for_post:", places_for_post)
+        counter = 0
+        for elem in places_for_post:
+            counter += 1
+            place_name = sw.select_name_from_places(elem[1])
+            print(place_name[0])
+            checkbox_name = "checkBox"+"_dynamic_"+str(counter)
+
+
+            form.checkbox_name = QtWidgets.QCheckBox(form.verticalLayoutWidget_6)
+            form.checkbox_name.setObjectName(checkbox_name)
+            form.verticalLayout_9.addWidget(form.checkbox_name)
+
+            form.checkbox_name.setText(place_name[0])
+            form.checkbox_name.setChecked(True)
+            checkbox_dict[checkbox_name] = elem
+            print(form.checkbox_name.isChecked())
+
+
+        form.line_v = QtWidgets.QFrame(form.verticalLayoutWidget_6)
+        form.line_v.setFrameShape(QtWidgets.QFrame.VLine)
+        form.line_v.setFrameShadow(QtWidgets.QFrame.Sunken)
+        form.line_v.setObjectName("line_v")
+        form.verticalLayout_9.addWidget(form.line_v)
+
+        # print(checkbox_dict)
+    except:
+        pass
+
+
+
+
 
     try:
         full_post_info = sw.select_info_from_post(folder)
@@ -616,26 +661,25 @@ def view_cell(row, cell):
         form.lineEdit_7.setText(full_post_info[0][8])
         form.lineEdit_8.setText(full_post_info[0][9])
         form.textEdit.setText(full_post_info[0][3])
-
-
-
-
-
     except:
         print('Что-то с БД')
 
-
-
     form.tabWidget.setCurrentIndex(3)
+    return checkbox_dict
 
-
-
-
+def view_cell(row, cell):
+    print('Клик по клетке!', row, cell)
+    checkbox_dict = dict()
+    try:
+        checkbox_dict = view_info_from_cell(row)
+        print(form.checkBox_dynamic_1.isChecked())
+    except:
+        pass
+    print('вернулся словарь: ',checkbox_dict)
 
 
 
 form.tableWidget.cellDoubleClicked.connect(view_cell)
-
 
 
 window.show()

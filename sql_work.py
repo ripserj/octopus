@@ -168,17 +168,19 @@ def select_all(project_id):
     records = curr.fetchall()
     return records
 
-def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, file_names):
+def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, file_names, thread_id=50):
     connn = sqlite3.connect('links.db')
     curr = connn.cursor()
+    print('ВЫзов на запись!')
     print(str(folder_date), str(folder_name))
-    data_insert = (folder_date, folder_name, work_folder, photo_date, file_date, file_names)
-    sqlite_param = """INSERT INTO post(folder_date, folder_name, work_folder, photo_date, file_date, files_name)
-       VALUES(?, ?, ?, ?, ?, ?);"""
+    data_insert = (folder_date, folder_name, work_folder, photo_date, file_date, file_names, thread_id)
+    sqlite_param = """INSERT INTO post(folder_date, folder_name, work_folder, photo_date, file_date, files_name, thread_id)
+       VALUES(?, ?, ?, ?, ?, ?, ?);"""
     curr.execute(sqlite_param, data_insert)
     last_id = curr.lastrowid
     connn.commit()
     return last_id
+
 
 def work_folder_in_base(folder):
     conn = sqlite3.connect('links.db')
@@ -308,5 +310,18 @@ def select_current_place_thread(thread_id, place_id):
         print('records22:', records)
         return records[0][3]
 
+def select_places_for_thread(thread_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from forums_threads where threads = ?"""
+    cur.execute(sql_select_query, (thread_id,))
+    records = cur.fetchall()
+    return records
 
-select_current_place_thread(63, 12)
+def select_name_from_places(id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select name from forums where id = ?"""
+    cur.execute(sql_select_query, (id,))
+    records = cur.fetchone()
+    return records
