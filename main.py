@@ -230,52 +230,6 @@ def unpack(path):
 
 
 
-    #
-    #     if '.zip' in file_name.lower():
-    #
-    #         print('Есть zip архив. Попытка вытащить даты из файлов архива...', os.path.join(path, file_name))
-    #         date_from_file_info = get_date_from_zip(os.path.join(path, file_name))
-    #         print(f"ФАЙЛЫ ВНУТРИ АРХИВА ИМЕЮТ ДАТУ: {date_from_file_info}")
-    #
-    #         print('Есть zip архив. Приступаю к распаковке...', os.path.join(path, file_name))
-    #
-    #         path = uu.unpack_zip(os.path.join(path), file_name)
-    #
-    #         file_name = file_name[0:-4]
-    #         print('Распаковка завершена...')
-    #
-    #         print(ROOT_DIR, "----------", elem)
-    #
-    #         print("Архив удален, проверяю наличие вложенных папок...")
-    #         rename_files(path, file_name, zip=1)
-    #
-    #         num_of_pics = img_upload.select_and_send_pics(path)
-    #
-    #     else:
-    #
-    #         print("Архивов в папке нет, проверяю наличие вложенных папок...")
-    #         print(path, file_name)
-    #         rename_files(path, file_name)
-    #         num_of_pics = img_upload.select_and_send_pics(path)
-    # else:
-    #     print("В папке слишком много файлов! Проверьте контент!")
-    #
-    # print(set_name, set_date)
-
-    # arc_file = uu.pack_and_del(path)
-    # проверка: в папке 1 zip с размером не менее 1Мб
-    # size = uu.check(path)
-    # if size > 1:
-    #     info = info + num_of_pics + "size: " + str(size) + "Mb\n\n"
-    #     uu.upload_txt("upload-test.txt", info)
-    #
-    #     img_upload.ftp_upload(arc_file)
-    #     temp_name = arc_file.split('\\')
-    #     name = temp_name[len(temp_name) - 1]
-    #     sw.zip_in_base(name, str(size))
-    # else:
-    #     print("Программа прервана, проверьте папку " + path)
-
 
 def load_data_main():
     for elem in os.listdir(ROOT_DIR):

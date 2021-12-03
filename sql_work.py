@@ -258,11 +258,30 @@ def select_info_from_zip(zip_file):
     print(records)
     return records
 
+def select_url_from_zip(zip_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select link from zips where zipid = ?"""
+    cur.execute(sql_select_query, (zip_id,))
+    records = cur.fetchone()
+    print(records)
+    return records
+
+
 def select_data_from_forums(project_id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     sql_select_query = """select * from forums where project_id = ?"""
     cur.execute(sql_select_query, (project_id,))
+    records = cur.fetchall()
+    print(records)
+    return records
+
+def search_data_for_login(forum_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from forums where id = ?"""
+    cur.execute(sql_select_query, (forum_id,))
     records = cur.fetchall()
     print(records)
     return records
@@ -321,7 +340,17 @@ def select_places_for_thread(thread_id):
 def select_name_from_places(id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    sql_select_query = """select name from forums where id = ?"""
+    sql_select_query = """select name from forums where id = ? order by name"""
     cur.execute(sql_select_query, (id,))
     records = cur.fetchone()
+    print('records:', records)
     return records
+
+def delete_tfp(thread_id, place_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """delete from forums_threads where threads = ? and forums = ?"""
+    cur.execute(sql_select_query, (thread_id, place_id,))
+    conn.commit()
+    print("Запись успешно удалена")
+    cur.close()
