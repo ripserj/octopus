@@ -67,7 +67,7 @@ def save_message(post_id, ut_text):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
-def save_place_in_bd(name, login_url, inputs, userid, project_id):
+def save_place_in_bd(name, login_url, inputs, userid, type_place, project_id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     print(inputs)
@@ -78,9 +78,9 @@ def save_place_in_bd(name, login_url, inputs, userid, project_id):
         else:
             clear_string = x.strip()
 
-    data_insert = (name, login_url, clear_string, userid, project_id)
-    sqlite_param = """INSERT INTO forums(name, login_url, inputs, userid, project_id)
-       VALUES(?, ?, ?, ?, ?);"""
+    data_insert = (name, login_url, clear_string, userid, project_id, type_place)
+    sqlite_param = """INSERT INTO forums(name, login_url, inputs, userid, project_id, type)
+       VALUES(?, ?, ?, ?, ?, ?);"""
     cur.execute(sqlite_param, data_insert)
     conn.commit()
 
@@ -286,34 +286,34 @@ def search_data_for_login(forum_id):
     print(records)
     return records
 
-def update_place_in_bd(name, login_url, inputs, userid, id):
-    print(name, login_url, inputs, userid, id)
+def update_place_in_bd(name, login_url, inputs, userid, id, type_place):
+    print(name, login_url, inputs, userid, id, type_place)
 
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    data_update = (name, login_url, inputs, userid, int(id))
-    sqlite_param = """Update forums set name = ?, login_url = ?, inputs = ?, userid = ?  where id = ?"""
+    data_update = (name, login_url, inputs, userid, type_place, int(id))
+    sqlite_param = """Update forums set name = ?, login_url = ?, inputs = ?, userid = ?, type = ?  where id = ?"""
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
 
-def save_place_thread(thread_id, place_id, link_url):
+def save_place_thread(thread_id, place_id, link_url, place_type):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
     cur.execute(sql_select_query, (thread_id, place_id,))
     records = cur.fetchall()
-    print('records:', records)
+    print('records:', records, place_type)
     if len(records) > 0:
-        data_update = (link_url, place_id, thread_id)
-        sqlite_param = """Update forums_threads set url = ?  where forums = ? AND threads = ?"""
+        data_update = (link_url, place_type, place_id, thread_id)
+        sqlite_param = """Update forums_threads set url = ?, type = ?  where forums = ? AND threads = ?"""
         cur.execute(sqlite_param, data_update)
         conn.commit()
 
     else:
-        data_insert = (place_id, thread_id, link_url)
-        sqlite_param = """INSERT INTO forums_threads (forums, threads, url) 
-           VALUES(?, ?, ?);"""
+        data_insert = (place_id, thread_id, link_url, place_type)
+        sqlite_param = """INSERT INTO forums_threads (forums, threads, url, type) 
+           VALUES(?, ?, ?, ?);"""
         cur.execute(sqlite_param, data_insert)
         last_id = cur.lastrowid
         conn.commit()
@@ -327,7 +327,7 @@ def select_current_place_thread(thread_id, place_id):
     records = cur.fetchall()
     if len(records) > 0:
         print('records22:', records)
-        return records[0][3]
+        return records[0][3], records[0][4]
 
 def select_places_for_thread(thread_id):
     conn = sqlite3.connect('links.db')

@@ -182,12 +182,23 @@ def select_and_send_pics(path):
 
     return counter, otbor
 
+
+
+def get_token(text, token):
+
+    soup = BeautifulSoup(text, features="html.parser")
+    key = ''
+    for x in soup.find_all('input', {'name': token}):
+        key = x.get('value')
+    return key
+
 def login_on_place(url, body_post, info_for_login):
     auth = dict()
     for elem in info_for_login:
         login_url = elem[2]
         login_data = elem[4]
         userid = elem[5]
+        place_type = elem[7]
 
     for elem in login_data.split(','):
         elem = elem.replace('\n', '')
@@ -202,6 +213,8 @@ def login_on_place(url, body_post, info_for_login):
     print(auth)
 
     print('Пробуем войти на ресурс: ', url)
+    print(place_type)
+
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
         "Accept-Encoding": "gzip, deflate, br",
@@ -214,35 +227,55 @@ def login_on_place(url, body_post, info_for_login):
     session = requests.Session()
     session.headers = headers
 
-    response = session.post(login_url, data=auth)
-    time.sleep(randint(1, 5))
+    if place_type == '0':
+        print('vBulletin type')
+        response = session.post(login_url, data=auth)
+        print(response)
+        time.sleep(randint(1, 3))
 
-    r = session.get(url, headers=headers)
-
-    with open('log.html', 'w', encoding="utf-8") as f:
-        f.write(r.text)
-    f.close()
-
-    soup = BeautifulSoup(r.text, features="html.parser")
-    token = ''
-
-    for x in soup.find_all('input', {'name': 'securitytoken'}):
-        token = x.get('value')
-        print(token)
-    post_num = url.split('p=')
+        r = session.get(url, headers=headers)
+        print(r)
+        token = get_token(r.text, 'securitytoken')
 
 
-    payload = {'securitytoken': token, 's': '', 'do': 'postreply', 't': '', 'p': post_num[1],
-               'specifiedpost': '0', 'posthash': '', 'poststarttime': '', 'loggedinuser': userid,
-               'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
+        if 'p=' in url:
+            post_num = url.split('p=')
+
+        payload = {'securitytoken': token, 's': '', 'do': 'postreply', 't': '', 'p': post_num[1],
+                   'specifiedpost': '0', 'posthash': '', 'poststarttime': '', 'loggedinuser': userid,
+                   'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
+
+        print(payload)
+
+        # response = session.post(url, data=payload, headers=headers)   # Временно заблокировал постинг
+        # print(response)
+    elif place_type == '1':
+        print('XenForo type')
+
+        r = session.get(login_url, headers=headers)
+
+        token = get_token(r.text, '_xfToken')
+        redirect = get_token(r.text, '_xfRedirect')
+
+        auth['_xfToken'] = token
+        auth['_xfRedirect'] = redirect
+
+        time.sleep(randint(1, 3))
+
+        response = session.post(login_url, data=auth)
+        time.sleep(randint(1, 3))
+        r = session.get(url, headers=headers)
+        token = get_token(r.text, '_xfToken')
+        redirect = get_token(r.text, '_xfRedirect')  # Пока не требуется
+
+        time.sleep(randint(1, 3))
+
+        payload = {'_xfToken': token, 's': '', 'do': 'postreply', 't': '',
+                   'specifiedpost': '0', 'posthash': '', 'poststarttime': '',
+                   'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
+
+        # response = session.post(url+"add-reply", data=payload, headers=headers)  # Временно заблокировал постинг
+        # print(response)
 
 
-
-    print(payload)
-    print(url)
-
-    response = session.post(url, data=payload, headers=headers)
-    print(response)
-
-
-##  НЕ ДОПИСАЛ ДАЛЕЕ
+        ##  НЕ ДОПИСАЛ ДАЛЕЕ

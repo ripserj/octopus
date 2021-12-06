@@ -31,6 +31,8 @@ form.setupUi(window)
 CURRENT_PROJECT = False
 PROJECT_ID = 20
 
+checkbox_dict = dict()
+
 
 class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
     def __init__(self):
@@ -384,10 +386,6 @@ def add_text_label_in_tab():
     form.label_name.setText(label_name)
 
 
-# def select_theme():
-#     form.pushButton.setEnabled(True)
-
-
 def add_new_thread_in_project_list(project_id):
     all_threads = sw.select_all_threads_in_project(project_id)
     print(all_threads)
@@ -425,10 +423,10 @@ def save_place_thread():
     if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip():
         thread_id = form.comboBox_2.currentData()
         place_id = form.comboBox_3.currentData()
+        place_type = form.comboBox_5.currentIndex()
         link_url = form.lineEdit_17.text().strip()
-        sw.save_place_thread(thread_id[0], place_id[0], link_url)
-        print(form.comboBox_2.currentData())
-        print(form.comboBox_3.currentData())
+        sw.save_place_thread(thread_id[0], place_id[0], link_url, place_type)
+
     else:
         print('Need more information!')
         form.label_38.setText('Need more info!')
@@ -517,12 +515,10 @@ def load_current_place():
 def load_current_place_thread():
     x = form.comboBox_2.currentData()
     y = form.comboBox_3.currentData()
-    print('x:', type(x))
-    print('y', type(y))
     if isinstance(x, tuple)  and isinstance(y, tuple):
-        print('Это тюплы!')
-        url_link = sw.select_current_place_thread(x[0], y[0])
+        url_link, place_type = sw.select_current_place_thread(x[0], y[0])
         form.lineEdit_17.setText(url_link)
+        form.comboBox_5.setCurrentIndex(int(place_type))
         print(url_link)
 
 
@@ -564,14 +560,14 @@ def save_place():
         login_url = form.lineEdit_15.text().strip()
         inputs = form.textEdit_3.toPlainText().strip()
         userid = form.lineEdit_16.text().strip()
-
+        type_place = form.comboBox_4.currentIndex()
         if name and login_url and inputs and userid:
 
             if form.label_34.text():
-                sw.update_place_in_bd(name, login_url, inputs, userid, form.label_34.text())
+                sw.update_place_in_bd(name, login_url, inputs, userid, form.label_34.text(), type_place)
 
             else:
-                sw.save_place_in_bd(name, login_url, inputs, userid, PROJECT_ID)
+                sw.save_place_in_bd(name, login_url, inputs, userid, type_place, PROJECT_ID)
         else:
             print('Неверные данные')
 
@@ -619,21 +615,36 @@ def view_info_from_cell(row):
         form.label_48.setText(zip_url[0])
 
         print(thread_id)
-        checkbox_dict = []
         places_for_post = sw.select_places_for_thread(thread_id)
         print("places_for_post:", places_for_post)
-        counter = 0
-        places_txt = ''
+
         place_names = []
+        type_place_dict = dict()
         for elem in places_for_post:
             place_name = sw.select_name_from_places(elem[1])
             place_names.append(str(place_name[0]))
+            type_place_dict[str(place_name[0])] = elem[4]
         print(place_names)
         place_names.sort()
-
+        counter = 0
         for elem in place_names:
-            places_txt = places_txt + '• '+elem+'\n'
-        form.label_49.setText(places_txt)
+
+            checkbox_name = 'checkBox_u'+str(counter)
+            obj = getattr(form, checkbox_name)                          # !!
+            obj.setText(elem)
+            obj.setChecked(True)
+            if type_place_dict[elem] == 0:
+                obj.setChecked(True)
+            else:
+                obj.setChecked(False)
+            counter += 1
+            checkbox_dict[elem] = checkbox_name
+
+        for x in range(counter, 29):   # Прячем лишние чекбоксы
+            checkbox_name = 'checkBox_u'+str(x)
+            obj = getattr(form, checkbox_name)
+            obj.hide()
+
 
     except:
         pass
@@ -662,6 +673,8 @@ def view_cell(row, cell):
     print('вернулся словарь: ', checkbox_dict)
     return checkbox_dict
 
+
+
 def delete_thread_from_place():
     thread_id = form.comboBox_2.currentData()[0]
     place_id = form.comboBox_3.currentData()[0]
@@ -685,7 +698,7 @@ class CurrentPost():
     def view_info(self):
         print(self.pics_code)
 
-    def lets_post(self):
+    def lets_post(self, check_box_dict):
         places_for_post = sw.select_places_for_thread(self.thread_id)
 
 
@@ -695,7 +708,14 @@ class CurrentPost():
             print(elem[3])       # печатаем URL, далее вызываем функцию поста
             print(elem)
             print(info_for_login)
-            img_upload.login_on_place(elem[3], self.body_post, info_for_login)
+            print('Название места куда постим:', info_for_login[0][1])
+
+            checkbox_name = check_box_dict[info_for_login[0][1]]
+            obj = getattr(form, checkbox_name)
+
+            if obj.isChecked():   # Work with checked box only!
+                img_upload.login_on_place(elem[3], self.body_post, info_for_login)
+
 
     def make_body(self):
         if self.date.strip() != '':
@@ -713,11 +733,12 @@ class CurrentPost():
 
 
 def send_post():
-
+    print('словарь чекблксов:',checkbox_dict)
     current_post = CurrentPost()
     current_post.make_body()
     # current_post.view_info()
-    current_post.lets_post()
+    current_post.lets_post(checkbox_dict)
+
 
 
 
