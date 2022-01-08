@@ -7,14 +7,13 @@ import json
 import time
 from random import randint
 from ftplib import FTP
-import sql_work as sw
 import logins
 from bs4 import BeautifulSoup
 
 ROOT_DIR = 'Resourse'
 
 
-def login_host():
+def login_host(filename=False):
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
         "Accept-Encoding": "gzip, deflate, br",
@@ -30,26 +29,33 @@ def login_host():
         'op': 'login',
         'redirect': '',
         'rand': '',
-
     }
 
     session = requests.Session()
     session.headers = headers
 
     response = session.post(logins.FILE_HOST_URL, data=auth, headers=headers)
-    # print(response.text)
 
-    time.sleep(randint(10, 15))
+    time.sleep(randint(3, 8))
     print("=================================================================")
+    r = session.get(logins.FILE_HOST_GET, headers=headers)
+    if filename:
+        data = {
+            'op': 'files',
+            'key': filename,
+        }
+        response = session.post(logins.FILE_HOST_MAIN_URL, data=data, headers=headers)
 
-    r = session.get(
-        logins.FILE_HOST_GET,
-        headers=headers)
-    # print(r.text)
-    return r.text
+        soup = BeautifulSoup(response.text, features="html.parser")
+        if soup.find_all('a', {'title': filename}):
+            return True
+        else:
+            return False
+    else:
+        return r.text
 
 
-# login_host()   # функция логина рабочая!!!
+# login_host()   # функция логина-проверки на файл-хосте рабочая!!!
 
 def progress(all_blocks):
     all_blocks = math.ceil(all_blocks)
@@ -75,8 +81,6 @@ def ftp_upload(file_name):
         ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(size / 262144))
     print("конец загрузки файла", file_name)
 
-
-# ftp_upload('1.mp4')
 
 # ftp_upload()  функция рабочая, можно допилить прогресс загрузки
 
@@ -178,19 +182,119 @@ def select_and_send_pics(path):
                 make_text_links(all_pics_vert[0:6], variant=3, mode='a')
                 otbor.extend(all_pics_vert[0:6])
 
-
-
     return counter, otbor
 
 
-
 def get_token(text, token):
-
     soup = BeautifulSoup(text, features="html.parser")
     key = ''
     for x in soup.find_all('input', {'name': token}):
         key = x.get('value')
     return key
+
+
+class LoginAndPosting():
+    def __init__(self, url, body_post, info_for_login):
+        self.url_for_post = url
+        self.forum_type = 0
+        self.login_url = None
+        self.body_post = body_post
+        self.info_for_login = info_for_login
+        self.auth, self.login_url, self.forum_type, self.user_id = self.check_data(self.info_for_login)
+        self.session = None
+
+        self.headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Connection": "keep-alive",
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
+            'Accept-Encoding': "gzip, deflate, sdch",
+        }
+    def dice_roll_and_sleep(self):
+        time.sleep(randint(50, 250) * 0.01)
+
+    def get_tok(self, text, token):
+        soup = BeautifulSoup(text, features="html.parser")
+        key = ''
+        for x in soup.find_all('input', {'name': token}):
+            key = x.get('value')
+        return key
+
+    def check_data(self, data):
+        data_new = dict()
+        for x in data[0][4].replace("'", "").split(','):
+            y = x.split(':')
+            data_new[y[0].strip()] = y[1].strip()
+        print('data_new:', data_new)
+        return data_new, data[0][2], int(data[0][7]), data[0][5]
+
+    def connect_to(self):
+        print('Attempt to login on: ', self.url_for_post)
+        self.session = requests.Session()
+        self.session.headers = self.headers
+        if self.forum_type == 0:
+            print('Its vBulletin type forum!', self.url_for_post )
+            response = self.session.post(self.login_url, data=self.auth)
+            print(response)
+            self.dice_roll_and_sleep()
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            token = self.get_tok(r.text, 'securitytoken')
+            post_id = ''
+            if 'p=' in self.url_for_post:
+                post_num = self.url_for_post.split('p=')
+                post_id = post_num[1]
+
+            payload = {'securitytoken': token, 's': '', 'do': 'postreply', 't': '', 'p': post_id,
+                       'specifiedpost': '0', 'posthash': '', 'poststarttime': '', 'loggedinuser': self.user_id,
+                       'multiquoteempty': '', 'wysiwyg': '0', 'message': self.body_post}
+            response = self.session.post(self.url_for_post, data=payload, headers=self.headers)  # Временно заблокировал постинг
+            self.dice_roll_and_sleep()
+            print('Posting answer:', response)
+
+        elif self.forum_type == 1:
+            print('Its XenForo type forum!')
+            r = self.session.get(self.login_url, headers=self.headers)
+            token = self.get_tok(r.text, '_xfToken')
+            redirect = self.get_tok(r.text, '_xfRedirect')
+
+            self.auth['_xfToken'] = token
+            self.auth['_xfRedirect'] = redirect
+
+            self.dice_roll_and_sleep()
+
+            response = self.session.post(self.login_url, data=self.auth)
+            self.dice_roll_and_sleep()
+
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            token = self.get_tok(r.text, '_xfToken')
+            redirect = self.get_tok(r.text, '_xfRedirect')  # Пока не требуется
+
+            self.dice_roll_and_sleep()
+
+            payload = {'_xfToken': token, 's': '', 'do': 'postreply', 't': '',
+                       'specifiedpost': '0', 'posthash': '', 'poststarttime': '',
+                       'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
+
+            response = self.session.post(self.url_for_post + "add-reply", data=payload, headers=self.headers)
+            print(response)
+
+
+
+
+
+        elif self.forum_type == 2:
+            print('Its SMF type forum!')
+            r = self.session.get(self.login_url, headers=self.headers)
+            print(r.text)
+
+    def post_to(self):
+        pass
+
+
+if __name__ == "__main__":
+    new_1 = LoginAndPosting(1, 2, 3)
+
 
 def login_on_place(url, body_post, info_for_login):
     auth = dict()
@@ -208,7 +312,6 @@ def login_on_place(url, body_post, info_for_login):
         y = elem.split(':')
         print(y)
         auth[y[0]] = y[1]
-
 
     print(auth)
 
@@ -237,7 +340,6 @@ def login_on_place(url, body_post, info_for_login):
         print(r)
         token = get_token(r.text, 'securitytoken')
 
-
         if 'p=' in url:
             post_num = url.split('p=')
 
@@ -247,8 +349,12 @@ def login_on_place(url, body_post, info_for_login):
 
         print(payload)
 
-        # response = session.post(url, data=payload, headers=headers)   # Временно заблокировал постинг
-        # print(response)
+        response = session.post(url, data=payload, headers=headers)  # Временно заблокировал постинг
+        print(response)
+        time.sleep(1, 4)
+
+
+
     elif place_type == '1':
         print('XenForo type')
 
@@ -274,8 +380,7 @@ def login_on_place(url, body_post, info_for_login):
                    'specifiedpost': '0', 'posthash': '', 'poststarttime': '',
                    'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
 
-        # response = session.post(url+"add-reply", data=payload, headers=headers)  # Временно заблокировал постинг
-        # print(response)
-
+        response = session.post(url + "add-reply", data=payload, headers=headers)  # Временно заблокировал постинг
+        print(response)
 
         ##  НЕ ДОПИСАЛ ДАЛЕЕ

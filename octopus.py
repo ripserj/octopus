@@ -43,11 +43,9 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
         counter = 0
         for row in range(20):
             for column in range(20):
-
                 item = QtWidgets.QTableWidgetItem()
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 form.tableWidget.setItem(row, column, item)
-
 
         while form.checkBox_11.isChecked():
             self.link_search()
@@ -58,8 +56,6 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
             self.link_search()
 
     def link_search(self):
-
-
 
         all_threads = sw.select_all(self.project_id)
         print(all_threads)
@@ -80,7 +76,7 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                 print(zip_info)
                 print('Тред есть и готов к постингу')
 
-                print('counter = ',counter)
+                print('counter = ', counter)
                 try:
                     haystack = img_upload.login_host()
 
@@ -112,15 +108,14 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                     item = form.tableWidget.item(counter, 1)
                     item.setText(folder)
                     item = form.tableWidget.item(counter, 2)
-                    size = str(round((int(zip_info[0][2]))/1048576, 2))
+                    size = str(round((int(zip_info[0][2])) / 1048576, 2))
 
-                    item.setText(str(post_info[0][10])+' pics,     '+size+' Mb')
+                    item.setText(str(post_info[0][10]) + ' pics,     ' + size + ' Mb')
                     item = form.tableWidget.item(counter, 3)
-                    item.setText(str(zip_info[0][0])+',  '+str(elem[0])+',  '+str(post_info[0][0]))
+                    item.setText(str(zip_info[0][0]) + ',  ' + str(elem[0]) + ',  ' + str(post_info[0][0]))
                     print('успешно!')
                 except:
-                    print('не удалось обработать пост № '+str(post_info[0][0]))
-
+                    print('не удалось обработать пост № ' + str(post_info[0][0]))
 
                 counter += 1
 
@@ -129,11 +124,8 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
             #     print('Обновляем счетчик starting_id')
             #     sw.starting_id(elem[2], elem[3])
 
-
-
         if counter == 0 or zip_uploaded_yes == counter:
             form.checkBox_11.setChecked(False)
-
 
 
 class CThread(QThread):
@@ -170,11 +162,12 @@ class ContentCheckAndUpload(QThread):
         self.post_id = ''
         self.thread = 50
 
+    def check_existence_arch_on_server(self, arch_name):
+        return img_upload.login_host(filename=arch_name + '.zip')
+
     def run(self):
-        print('self.project_id=', self.project_id)
         all_threads = sw.select_all(self.project_id)
         form.groupBox_5.setTitle(str(PROJECT_ID))
-        print(all_threads)
 
         for elem in all_threads:
             current_dir = str(elem[2]) + str(elem[3])
@@ -182,11 +175,11 @@ class ContentCheckAndUpload(QThread):
             if uu.dir_exist(current_dir) and uu.check_dir(current_dir):
                 fill_thread.reset()
                 fill_thread2.reset()
-                print('Устанавливаем имя ' + elem[1])
+                print('Working with thread: ' + elem[1])
                 form.groupBox_5.setTitle(elem[1])
                 fill_thread.target = 2
                 fill_thread.start()
-                time.sleep(1)
+                time.sleep(0.1)
                 self.folder = elem[2] + str(elem[3])
 
                 ready, path = main.check_data_in_folder(self.folder)
@@ -209,7 +202,10 @@ class ContentCheckAndUpload(QThread):
                 fill_thread.start()
 
                 if sw.work_folder_in_base(self.folder):
-                    print('Такая рабочая папка уже есть в БД!')
+                    print(f'Рабочая папка {self.folder} уже есть в БД! Работа прервана!')
+                    break
+                elif self.check_existence_arch_on_server(self.folder):
+                    print(f'Файл с названием {self.folder}.zip уже есть на файловом хосте! Работа прервана!')
                     break
                 else:
                     try:
@@ -248,7 +244,6 @@ class ContentCheckAndUpload(QThread):
                     except:
                         print('Невозможно прочитать файл upload-test.txt')
 
-
                     for elem in otbor:
                         to_python = img_upload.upload_img(elem, path)
                         print(to_python)
@@ -257,15 +252,11 @@ class ContentCheckAndUpload(QThread):
                         fill_thread.start()
                         sw.img_in_base(elem, to_python['th_url'], to_python['show_url'], self.post_id)
 
-                        ut_text = ut_text.replace('show_url'+elem, to_python['show_url'])
+                        ut_text = ut_text.replace('show_url' + elem, to_python['show_url'])
                         ut_text = ut_text.replace('th_url' + elem, to_python['th_url'])
 
                     print(ut_text)
                     sw.save_message(self.post_id, ut_text)
-
-
-
-
 
                 time.sleep(1)
                 print('Формируем архив')
@@ -277,9 +268,7 @@ class ContentCheckAndUpload(QThread):
                 fill_thread.target = 100
                 fill_thread.start()
 
-
                 if size > 1:
-                    print('ЗДЕСЬ')
                     try:
                         size = os.path.getsize(file_name)
                         ftp = FTP(logins.FTP_HOST)
@@ -388,54 +377,49 @@ def add_text_label_in_tab():
 
 def add_new_thread_in_project_list(project_id):
     all_threads = sw.select_all_threads_in_project(project_id)
-    print(all_threads)
-
-    counter = 0
     form.listWidget.clear()
     for elem in all_threads:
         current_dir = str(elem[2]) + str(elem[3])
-
-        print(uu.dir_exist(current_dir))
-
-        print(elem)
         item = QtWidgets.QListWidgetItem()
-        print(uu.check_dir(current_dir))
+        item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
+        item.setCheckState(QtCore.Qt.Unchecked)
 
         if uu.dir_exist(current_dir):
             if uu.check_dir(current_dir):
                 item.setCheckState(QtCore.Qt.Checked)
-                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20*' . '+'READY!'
+                item.setFlags(
+                    QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
+                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
-                counter += 1
             else:
-                item.setCheckState(QtCore.Qt.Unchecked)
-                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50*' . '+'empty!'
+                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
-                counter += 1
-                print('Папка '+current_dir+' пуста!')
-
         else:
-            print('Нет рабочей папки - ' + str(elem[2]) + str(elem[3]))
+            thread_info = elem[1] + ' ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
+            item.setText(thread_info)
+            form.listWidget.addItem(item)
+
 
 def save_place_thread():
-    if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip():
+    if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip()\
+            and form.lineEdit_18.text().strip():
         thread_id = form.comboBox_2.currentData()
         place_id = form.comboBox_3.currentData()
         place_type = form.comboBox_5.currentIndex()
         link_url = form.lineEdit_17.text().strip()
-        sw.save_place_thread(thread_id[0], place_id[0], link_url, place_type)
+        description = form.lineEdit_18.text().strip()
+        sw.save_place_thread(thread_id[0], place_id[0], link_url, place_type, description)
 
     else:
         print('Need more information!')
         form.label_38.setText('Need more info!')
 
 
-
-
 def places_for_post_load(project_id):
     places = sw.select_data_from_forums(project_id)
+
     form.comboBox.clear()
     form.comboBox.addItem('Not selected', 0)
     form.comboBox_3.clear()
@@ -443,6 +427,7 @@ def places_for_post_load(project_id):
     form.comboBox_2.clear()
     form.comboBox_2.addItem('Not selected', 0)
     form.lineEdit_17.setText('')
+    form.lineEdit_18.setText('')
 
     for elem in places:
         form.comboBox.addItem(elem[1], elem)
@@ -454,13 +439,9 @@ def places_for_post_load(project_id):
         form.comboBox_2.addItem(elem[1], elem)
 
 
-
-
-
 def project_threads_load():
     add_new_thread_in_project_list(PROJECT_ID)
     places_for_post_load(PROJECT_ID)
-
 
 
 zip_link_search = LinkThread()
@@ -468,8 +449,6 @@ zip_link_search = LinkThread()
 
 def check_table():
     zip_link_search.start()
-
-
 
 
 def add_new_thread_folder():
@@ -512,14 +491,19 @@ def load_current_place():
         form.label_34.setText('')
         form.lineEdit_16.setText('')
 
+
 def load_current_place_thread():
     x = form.comboBox_2.currentData()
     y = form.comboBox_3.currentData()
-    if isinstance(x, tuple)  and isinstance(y, tuple):
-        url_link, place_type = sw.select_current_place_thread(x[0], y[0])
-        form.lineEdit_17.setText(url_link)
-        form.comboBox_5.setCurrentIndex(int(place_type))
-        print(url_link)
+    if isinstance(x, tuple) and isinstance(y, tuple):
+        if sw.select_current_place_thread(x[0], y[0]):
+            url_link, place_type, description = sw.select_current_place_thread(x[0], y[0])
+            form.lineEdit_17.setText(url_link)
+            form.lineEdit_18.setText(description)
+            form.comboBox_5.setCurrentIndex(int(place_type))
+        else:
+            form.lineEdit_17.clear()
+            form.lineEdit_18.clear()
 
 
 # СИГНАЛЫ В ПУНКТАХ МЕНЮ
@@ -571,7 +555,6 @@ def save_place():
         else:
             print('Неверные данные')
 
-
         print('Success save')
         places_for_post_load(PROJECT_ID)
     except:
@@ -581,9 +564,7 @@ def save_place():
 form.pushButton_save.clicked.connect(save_place)
 
 
-
 def view_info_from_cell(row):
-
     try:
         item = form.tableWidget.item(row, 0)
         post_name = item.text()
@@ -622,17 +603,23 @@ def view_info_from_cell(row):
         type_place_dict = dict()
         for elem in places_for_post:
             place_name = sw.select_name_from_places(elem[1])
-            place_names.append(str(place_name[0]))
-            type_place_dict[str(place_name[0])] = elem[4]
-        print(place_names)
+            place_name = str(place_name[0]) + ': ' + str(elem[5])
+            place_names.append(place_name)
+            type_place_dict[place_name] = elem[4]
+
+        print(type_place_dict)
         place_names.sort()
+        print(place_names)
         counter = 0
         for elem in place_names:
+            print(elem)
 
-            checkbox_name = 'checkBox_u'+str(counter)
-            obj = getattr(form, checkbox_name)                          # !!
+            checkbox_name = 'checkBox_u' + str(counter)
+            obj = getattr(form, checkbox_name)  # !!
             obj.setText(elem)
             obj.setChecked(True)
+
+
             if type_place_dict[elem] == 0:
                 obj.setChecked(True)
             else:
@@ -640,8 +627,8 @@ def view_info_from_cell(row):
             counter += 1
             checkbox_dict[elem] = checkbox_name
 
-        for x in range(counter, 29):   # Прячем лишние чекбоксы
-            checkbox_name = 'checkBox_u'+str(x)
+        for x in range(counter, 29):  # Прячем лишние чекбоксы
+            checkbox_name = 'checkBox_u' + str(x)
             obj = getattr(form, checkbox_name)
             obj.hide()
 
@@ -663,6 +650,7 @@ def view_info_from_cell(row):
     form.tabWidget.setCurrentIndex(3)
     return checkbox_dict
 
+
 def view_cell(row, cell):
     print('Клик по клетке!', row, cell)
     checkbox_dict = dict()
@@ -672,7 +660,6 @@ def view_cell(row, cell):
         pass
     print('вернулся словарь: ', checkbox_dict)
     return checkbox_dict
-
 
 
 def delete_thread_from_place():
@@ -700,47 +687,38 @@ class CurrentPost():
 
     def lets_post(self, check_box_dict):
         places_for_post = sw.select_places_for_thread(self.thread_id)
-
-
-
         for elem in places_for_post:
             info_for_login = sw.search_data_for_login(elem[1])
-            print(elem[3])       # печатаем URL, далее вызываем функцию поста
-            print(elem)
-            print(info_for_login)
-            print('Название места куда постим:', info_for_login[0][1])
-
             checkbox_name = check_box_dict[info_for_login[0][1]]
             obj = getattr(form, checkbox_name)
 
-            if obj.isChecked():   # Work with checked box only!
-                img_upload.login_on_place(elem[3], self.body_post, info_for_login)
+            if obj.isChecked():  # Work with checked box only!
+                print(elem[3])  # печатаем URL, далее вызываем функцию поста
+                print(elem)
+                print(info_for_login)
+                print('Название места куда постим:', info_for_login[0][1])
 
+                # img_upload.login_on_place(elem[3], self.body_post, info_for_login)  # РАБОЧИЙ ВЫЗОВ ФУНКЦИИ ЛОГИНА-ПОСТА!
+                post = img_upload.LoginAndPosting(elem[3], self.body_post, info_for_login)
+                print(post)
+                post.connect_to()
 
     def make_body(self):
         if self.date.strip() != '':
             self.date = 'Date: ' + self.date + '\n'
         else:
-            self.date =''
+            self.date = ''
 
-        self.body_post = 'Set: '+ self.post_name + '\nPics, archive size: ' + self.size_and_quality
-        self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url +'][B]Download from '+logins.FILE_HOST_NAME+'[/B][/URL]'
+        self.body_post = 'Set: ' + self.post_name + '\nPics, archive size: ' + self.size_and_quality
+        self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
         print(self.body_post)
 
 
-
-
-
-
 def send_post():
-    print('словарь чекблксов:',checkbox_dict)
+    print('словарь чекблксов:', checkbox_dict)
     current_post = CurrentPost()
     current_post.make_body()
-    # current_post.view_info()
     current_post.lets_post(checkbox_dict)
-
-
-
 
 
 form.pushButton_4.clicked.connect(send_post)
@@ -748,7 +726,6 @@ form.pushButton_4.clicked.connect(send_post)
 form.pushButton_delete.clicked.connect(delete_thread_from_place)
 
 form.tableWidget.cellDoubleClicked.connect(view_cell)
-
 
 window.show()
 app.exec()

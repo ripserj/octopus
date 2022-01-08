@@ -70,7 +70,6 @@ def save_message(post_id, ut_text):
 def save_place_in_bd(name, login_url, inputs, userid, type_place, project_id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    print(inputs)
     clear_string = ''
     for x in inputs.split(','):
         if clear_string:
@@ -84,12 +83,6 @@ def save_place_in_bd(name, login_url, inputs, userid, type_place, project_id):
     cur.execute(sqlite_param, data_insert)
     conn.commit()
 
-
-# r = dict()
-# for elem in clear_string.split(','):
-#     x = elem.split(':')
-#     r[x[0]] = x[1]
-# print(r)
 
 def img_in_base(elem, th_url, show_url, postid):
     conn = sqlite3.connect('links.db')
@@ -150,7 +143,6 @@ def open_project():
     sql_select_query = """select * from projects LIMIT 1"""
     cur.execute(sql_select_query)
     records = cur.fetchall()
-    print(records)
     for elem in records:
         project_id = elem[0]
     return project_id
@@ -158,11 +150,8 @@ def open_project():
 
 def select_all(project_id):
     project_id = 20
-    print(project_id)
     connn = sqlite3.connect('links.db')
-    print(connn)
     curr = connn.cursor()
-    print(curr)
     sql_select_query = """select * from threads"""
     curr.execute(sql_select_query)
     records = curr.fetchall()
@@ -171,8 +160,6 @@ def select_all(project_id):
 def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, file_names, thread_id=50):
     connn = sqlite3.connect('links.db')
     curr = connn.cursor()
-    print('ВЫзов на запись!')
-    print(str(folder_date), str(folder_name))
     data_insert = (folder_date, folder_name, work_folder, photo_date, file_date, file_names, thread_id)
     sqlite_param = """INSERT INTO post(folder_date, folder_name, work_folder, photo_date, file_date, files_name, thread_id)
        VALUES(?, ?, ?, ?, ?, ?, ?);"""
@@ -223,8 +210,6 @@ def check_ready_for_post(folder):
     sql_select_query = """select url from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
-    print(records[0][0])
-
     if records[0][0]:
         return True
     else:
@@ -236,7 +221,6 @@ def select_folders_in_current_project():
     sql_select_query = """select prefix, starting_id from threads where project_id = 20"""
     cur.execute(sql_select_query)
     records = cur.fetchall()
-    print(records)
     return records
 
 
@@ -246,7 +230,6 @@ def select_info_from_post(folder):
     sql_select_query = """select * from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
-    print(records)
     return records
 
 def select_info_from_zip(zip_file):
@@ -255,7 +238,6 @@ def select_info_from_zip(zip_file):
     sql_select_query = """select * from zips where name = ?"""
     cur.execute(sql_select_query, (zip_file,))
     records = cur.fetchall()
-    print(records)
     return records
 
 def select_url_from_zip(zip_id):
@@ -264,7 +246,6 @@ def select_url_from_zip(zip_id):
     sql_select_query = """select link from zips where zipid = ?"""
     cur.execute(sql_select_query, (zip_id,))
     records = cur.fetchone()
-    print(records)
     return records
 
 
@@ -274,7 +255,6 @@ def select_data_from_forums(project_id):
     sql_select_query = """select * from forums where project_id = ?"""
     cur.execute(sql_select_query, (project_id,))
     records = cur.fetchall()
-    print(records)
     return records
 
 def search_data_for_login(forum_id):
@@ -283,12 +263,9 @@ def search_data_for_login(forum_id):
     sql_select_query = """select * from forums where id = ?"""
     cur.execute(sql_select_query, (forum_id,))
     records = cur.fetchall()
-    print(records)
     return records
 
 def update_place_in_bd(name, login_url, inputs, userid, id, type_place):
-    print(name, login_url, inputs, userid, id, type_place)
-
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     data_update = (name, login_url, inputs, userid, type_place, int(id))
@@ -297,23 +274,22 @@ def update_place_in_bd(name, login_url, inputs, userid, id, type_place):
     conn.commit()
 
 
-def save_place_thread(thread_id, place_id, link_url, place_type):
+def save_place_thread(thread_id, place_id, link_url, place_type, description):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
     cur.execute(sql_select_query, (thread_id, place_id,))
     records = cur.fetchall()
-    print('records:', records, place_type)
     if len(records) > 0:
-        data_update = (link_url, place_type, place_id, thread_id)
-        sqlite_param = """Update forums_threads set url = ?, type = ?  where forums = ? AND threads = ?"""
+        data_update = (link_url, place_type, description, place_id, thread_id)
+        sqlite_param = """Update forums_threads set url = ?, type = ?, description = ? where forums = ? AND threads = ?"""
         cur.execute(sqlite_param, data_update)
         conn.commit()
 
     else:
-        data_insert = (place_id, thread_id, link_url, place_type)
-        sqlite_param = """INSERT INTO forums_threads (forums, threads, url, type) 
-           VALUES(?, ?, ?, ?);"""
+        data_insert = (place_id, thread_id, link_url, place_type, description)
+        sqlite_param = """INSERT INTO forums_threads (forums, threads, url, type, description) 
+           VALUES(?, ?, ?, ?, ?);"""
         cur.execute(sqlite_param, data_insert)
         last_id = cur.lastrowid
         conn.commit()
@@ -326,8 +302,9 @@ def select_current_place_thread(thread_id, place_id):
     cur.execute(sql_select_query, (thread_id, place_id,))
     records = cur.fetchall()
     if len(records) > 0:
-        print('records22:', records)
-        return records[0][3], records[0][4]
+        return records[0][3], records[0][4], records[0][5]
+    else:
+        return False
 
 def select_places_for_thread(thread_id):
     conn = sqlite3.connect('links.db')
@@ -343,7 +320,7 @@ def select_name_from_places(id):
     sql_select_query = """select name from forums where id = ? order by name"""
     cur.execute(sql_select_query, (id,))
     records = cur.fetchone()
-    print('records:', records)
+
     return records
 
 def delete_tfp(thread_id, place_id):
@@ -352,5 +329,4 @@ def delete_tfp(thread_id, place_id):
     sql_select_query = """delete from forums_threads where threads = ? and forums = ?"""
     cur.execute(sql_select_query, (thread_id, place_id,))
     conn.commit()
-    print("Запись успешно удалена")
     cur.close()
