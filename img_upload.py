@@ -202,6 +202,7 @@ class LoginAndPosting():
         self.info_for_login = info_for_login
         self.auth, self.login_url, self.forum_type, self.user_id = self.check_data(self.info_for_login)
         self.session = None
+        self.edit_post_url = None
 
         self.headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
@@ -229,6 +230,46 @@ class LoginAndPosting():
         print('data_new:', data_new)
         return data_new, data[0][2], int(data[0][7]), data[0][5]
 
+    def find_last_post_vbb(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('login')
+            search_url = split_url[0] + 'search.php?do=finduser&u=' + self.user_id
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('#post')
+            position_temp2 = position_temp[1].split('"')
+            edit_url = split_url[0] + 'editpost.php?do=editpost&p=' + position_temp2[0]
+        except:
+            edit_url = None
+        return edit_url
+
+    def find_last_post_xfr(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('login')
+            search_url = split_url[0] + 'search/member?user_id='+self.user_id
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('post-')
+            position_temp2 = position_temp[1].split('"')
+            edit_url = split_url[0] + 'posts/' + position_temp2[0] + '/edit'
+        except:
+            edit_url = None
+        print(edit_url)
+        return edit_url
+
+    def check_adding_new_post(self, zip_link):
+        self.dice_roll_and_sleep()
+        try:
+            r = self.session.get(self.edit_post_url, headers=self.headers)
+            if zip_link in r.text:
+                return True
+            else:
+                return False
+        except:
+            print(f'Проблемы с соединением к url: {self.edit_post_url}')
+
+
+
     def connect_to(self):
         print('Attempt to login on: ', self.url_for_post)
         self.session = requests.Session()
@@ -236,7 +277,6 @@ class LoginAndPosting():
         if self.forum_type == 0:
             print('Its vBulletin type forum!', self.url_for_post )
             response = self.session.post(self.login_url, data=self.auth)
-            print(response)
             self.dice_roll_and_sleep()
             r = self.session.get(self.url_for_post, headers=self.headers)
             token = self.get_tok(r.text, 'securitytoken')
@@ -250,11 +290,12 @@ class LoginAndPosting():
                        'multiquoteempty': '', 'wysiwyg': '0', 'message': self.body_post}
             response = self.session.post(self.url_for_post, data=payload, headers=self.headers)  # Временно заблокировал постинг
             self.dice_roll_and_sleep()
-            print('Posting answer:', response)
+            self.edit_post_url = self.find_last_post_vbb()
 
         elif self.forum_type == 1:
             print('Its XenForo type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
+
             token = self.get_tok(r.text, '_xfToken')
             redirect = self.get_tok(r.text, '_xfRedirect')
 
@@ -267,6 +308,11 @@ class LoginAndPosting():
             self.dice_roll_and_sleep()
 
             r = self.session.get(self.url_for_post, headers=self.headers)
+
+            with open('test_4.html', 'w', encoding="utf-8") as f:
+                f.write(r.text)
+            f.close()
+
             token = self.get_tok(r.text, '_xfToken')
             redirect = self.get_tok(r.text, '_xfRedirect')  # Пока не требуется
 
@@ -274,19 +320,25 @@ class LoginAndPosting():
 
             payload = {'_xfToken': token, 's': '', 'do': 'postreply', 't': '',
                        'specifiedpost': '0', 'posthash': '', 'poststarttime': '',
-                       'multiquoteempty': '', 'wysiwyg': '0', 'message': body_post}
+                       'multiquoteempty': '', 'wysiwyg': '0', 'message': self.body_post}
 
             response = self.session.post(self.url_for_post + "add-reply", data=payload, headers=self.headers)
-            print(response)
-
-
-
-
+            self.edit_post_url = self.find_last_post_xfr()
 
         elif self.forum_type == 2:
+            print('Its phpBB type forum!')
+            r = self.session.get(self.login_url, headers=self.headers)
+
+
+            print(r.text)
+
+
+        elif self.forum_type == 3:
             print('Its SMF type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
             print(r.text)
+
+        return self.edit_post_url
 
     def post_to(self):
         pass

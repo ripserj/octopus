@@ -88,9 +88,12 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                             zip_link = link.get('href')
                             if zip_link:
                                 print(zip_link)
+                                print(zip_file)
                                 sw.insert_zip_link(zip_link, zip_file)
 
+
                         item = form.tableWidget.item(counter, 4)
+
                         item.setText('YES')
                         zip_uploaded_yes += 1
 
@@ -403,7 +406,7 @@ def add_new_thread_in_project_list(project_id):
 
 
 def save_place_thread():
-    if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip()\
+    if form.comboBox_2.currentIndex() and form.comboBox_3.currentIndex() and form.lineEdit_17.text().strip() \
             and form.lineEdit_18.text().strip():
         thread_id = form.comboBox_2.currentData()
         place_id = form.comboBox_3.currentData()
@@ -607,18 +610,13 @@ def view_info_from_cell(row):
             place_names.append(place_name)
             type_place_dict[place_name] = elem[4]
 
-        print(type_place_dict)
         place_names.sort()
-        print(place_names)
         counter = 0
         for elem in place_names:
-            print(elem)
-
             checkbox_name = 'checkBox_u' + str(counter)
             obj = getattr(form, checkbox_name)  # !!
             obj.setText(elem)
             obj.setChecked(True)
-
 
             if type_place_dict[elem] == 0:
                 obj.setChecked(True)
@@ -631,8 +629,6 @@ def view_info_from_cell(row):
             checkbox_name = 'checkBox_u' + str(x)
             obj = getattr(form, checkbox_name)
             obj.hide()
-
-
     except:
         pass
 
@@ -652,7 +648,6 @@ def view_info_from_cell(row):
 
 
 def view_cell(row, cell):
-    print('Клик по клетке!', row, cell)
     checkbox_dict = dict()
     try:
         checkbox_dict = view_info_from_cell(row)
@@ -689,7 +684,7 @@ class CurrentPost():
         places_for_post = sw.select_places_for_thread(self.thread_id)
         for elem in places_for_post:
             info_for_login = sw.search_data_for_login(elem[1])
-            checkbox_name = check_box_dict[info_for_login[0][1]]
+            checkbox_name = check_box_dict[info_for_login[0][1] + ': ' + elem[5]]
             obj = getattr(form, checkbox_name)
 
             if obj.isChecked():  # Work with checked box only!
@@ -701,7 +696,16 @@ class CurrentPost():
                 # img_upload.login_on_place(elem[3], self.body_post, info_for_login)  # РАБОЧИЙ ВЫЗОВ ФУНКЦИИ ЛОГИНА-ПОСТА!
                 post = img_upload.LoginAndPosting(elem[3], self.body_post, info_for_login)
                 print(post)
-                post.connect_to()
+                edit_post_url = post.connect_to()
+
+                if post.check_adding_new_post(self.zip_url):
+                    print(f'++++++  Новый пост на {info_for_login[0][1]} найден успешно! ++++++')
+                    if sw.insert_forum_post(elem[1], self.thread_id, self.post_id, self.zip_id, edit_post_url):
+                        print('запись о новом посте в БД совершена успешно!')
+                else:
+                    print(f'------  Пост на {info_for_login[0][1]} найти не удалось! ------')
+
+
 
     def make_body(self):
         if self.date.strip() != '':

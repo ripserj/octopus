@@ -168,6 +168,18 @@ def add_new_post(folder_date, folder_name, work_folder, photo_date, file_date, f
     connn.commit()
     return last_id
 
+def insert_forum_post(forum_id, thread_id, post_id, zip_id, edit_post_url):
+    connn = sqlite3.connect('links.db')
+    curr = connn.cursor()
+    data_insert = (forum_id, thread_id, post_id, zip_id, edit_post_url)
+    sqlite_param = """INSERT INTO forums_posts(forum_id, thread_id, post_id, zip_id, edit_post_url)
+       VALUES(?, ?, ?, ?, ?);"""
+    curr.execute(sqlite_param, data_insert)
+    last_id = curr.lastrowid
+    connn.commit()
+    return last_id
+
+
 
 def work_folder_in_base(folder):
     conn = sqlite3.connect('links.db')
