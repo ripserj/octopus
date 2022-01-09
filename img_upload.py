@@ -309,10 +309,6 @@ class LoginAndPosting():
 
             r = self.session.get(self.url_for_post, headers=self.headers)
 
-            with open('test_4.html', 'w', encoding="utf-8") as f:
-                f.write(r.text)
-            f.close()
-
             token = self.get_tok(r.text, '_xfToken')
             redirect = self.get_tok(r.text, '_xfRedirect')  # Пока не требуется
 
@@ -328,7 +324,7 @@ class LoginAndPosting():
         elif self.forum_type == 2:
             print('Its phpBB type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
-
+            # TODO: перенести сюда все из тестового файла. ТАм рабочая функция логина + допилить постинг
 
             print(r.text)
 
@@ -337,7 +333,7 @@ class LoginAndPosting():
             print('Its SMF type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
             print(r.text)
-
+            # TODO: перенести сюда все из тестового файла. ТАм рабочая функция логина + допилить постинг
         return self.edit_post_url
 
     def post_to(self):
