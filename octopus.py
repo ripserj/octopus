@@ -611,12 +611,14 @@ def view_info_from_cell(row):
             type_place_dict[place_name] = elem[4]
 
         place_names.sort()
+        print('place_names:',place_names)
         counter = 0
         for elem in place_names:
             checkbox_name = 'checkBox_u' + str(counter)
             obj = getattr(form, checkbox_name)  # !!
             obj.setText(elem)
             obj.setChecked(True)
+            obj.show()
 
             if type_place_dict[elem] == 0:
                 obj.setChecked(True)
@@ -624,7 +626,7 @@ def view_info_from_cell(row):
                 obj.setChecked(False)
             counter += 1
             checkbox_dict[elem] = checkbox_name
-
+        print('counter = ',counter)
         for x in range(counter, 29):  # Прячем лишние чекбоксы
             checkbox_name = 'checkBox_u' + str(x)
             obj = getattr(form, checkbox_name)

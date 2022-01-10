@@ -212,6 +212,7 @@ class LoginAndPosting():
             "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
             'Accept-Encoding': "gzip, deflate, sdch",
         }
+
     def dice_roll_and_sleep(self):
         time.sleep(randint(50, 250) * 0.01)
 
@@ -247,7 +248,7 @@ class LoginAndPosting():
         self.dice_roll_and_sleep()
         try:
             split_url = self.login_url.split('login')
-            search_url = split_url[0] + 'search/member?user_id='+self.user_id
+            search_url = split_url[0] + 'search/member?user_id=' + self.user_id
             r = self.session.get(search_url, headers=self.headers)
             position_temp = r.text.split('post-')
             position_temp2 = position_temp[1].split('"')
@@ -255,6 +256,24 @@ class LoginAndPosting():
         except:
             edit_url = None
         print(edit_url)
+        return edit_url
+
+    def find_last_post_phpbb(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('ucp')
+            search_url = split_url[0] + 'search.php?author_id=' + self.user_id + '&sr=posts'
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('#p')
+            position_temp2 = position_temp[1].split('"')
+            position_temp3 = position_temp[0].split('.php?')
+            print('СМ сюда')
+            print(position_temp3[len(position_temp3) - 1])
+            position_temp4 = position_temp3[len(position_temp3) - 1].split('&')
+            print(position_temp4[0])
+            edit_url = split_url[0] + 'posting.php?mode=edit&' + position_temp4[0] + '&p=' + position_temp2[0]
+        except:
+            edit_url = None
         return edit_url
 
     def check_adding_new_post(self, zip_link):
@@ -268,14 +287,12 @@ class LoginAndPosting():
         except:
             print(f'Проблемы с соединением к url: {self.edit_post_url}')
 
-
-
     def connect_to(self):
         print('Attempt to login on: ', self.url_for_post)
         self.session = requests.Session()
         self.session.headers = self.headers
         if self.forum_type == 0:
-            print('Its vBulletin type forum!', self.url_for_post )
+            print('Its vBulletin type forum!', self.url_for_post)
             response = self.session.post(self.login_url, data=self.auth)
             self.dice_roll_and_sleep()
             r = self.session.get(self.url_for_post, headers=self.headers)
@@ -288,7 +305,8 @@ class LoginAndPosting():
             payload = {'securitytoken': token, 's': '', 'do': 'postreply', 't': '', 'p': post_id,
                        'specifiedpost': '0', 'posthash': '', 'poststarttime': '', 'loggedinuser': self.user_id,
                        'multiquoteempty': '', 'wysiwyg': '0', 'message': self.body_post}
-            response = self.session.post(self.url_for_post, data=payload, headers=self.headers)  # Временно заблокировал постинг
+            response = self.session.post(self.url_for_post, data=payload,
+                                         headers=self.headers)  # Временно заблокировал постинг
             self.dice_roll_and_sleep()
             self.edit_post_url = self.find_last_post_vbb()
 
@@ -324,9 +342,29 @@ class LoginAndPosting():
         elif self.forum_type == 2:
             print('Its phpBB type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
-            # TODO: перенести сюда все из тестового файла. ТАм рабочая функция логина + допилить постинг
 
-            print(r.text)
+            token = self.get_tok(r.text, 'sid')
+            self.auth['sid'] = token
+
+            response = self.session.post(self.login_url, data=self.auth)
+            self.dice_roll_and_sleep()
+
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            topic_cur_post_id = self.get_tok(r.text, 'topic_cur_post_id')
+            lastclick = self.get_tok(r.text, 'lastclick')
+            creation_time = self.get_tok(r.text, 'creation_time')
+            form_token = self.get_tok(r.text, 'form_token')
+            subject = self.get_tok(r.text, 'subject')
+            self.dice_roll_and_sleep()
+
+            payload = {'addbbcode20': 100, 'topic_cur_post_id': topic_cur_post_id, 'lastclick': lastclick,
+                       'post': 'Submit', 'attach_sig': 'on', 'show_panel': 'options-panel',
+                       'creation_time': creation_time, 'message': self.body_post,
+                       'form_token': form_token, 'subject': subject,
+                       }
+            print(payload)
+            # response = self.session.post(self.url_for_post, data=payload, headers=self.headers)
+            self.edit_post_url = self.find_last_post_phpbb()
 
 
         elif self.forum_type == 3:
