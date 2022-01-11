@@ -276,6 +276,40 @@ class LoginAndPosting():
             edit_url = None
         return edit_url
 
+    def find_last_post_smf(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('index.php')
+            search_url = split_url[0] + 'index.php?action=profile;area=showposts;u=' + self.user_id
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('#msg')
+            position_temp2 = position_temp[1].split('"')
+            print(position_temp2[0])  # номер поста
+            position_temp3 = position_temp[0].split('topic=')
+            position_temp4 = position_temp3[len(position_temp3) - 1].split('.')
+            print(position_temp4[0])  # номер топика
+
+            edit_url = split_url[0] + 'index.php?action=post;msg=' + position_temp2[0] + ';topic=' + position_temp4[0]
+        except:
+            edit_url = None
+        print(edit_url)
+        return edit_url
+
+    def find_last_post_unknownbb(self, username):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('login')
+
+            search_url = split_url[0] + 'userposts-' + username
+            print(search_url)
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('highlight=#')
+            position_temp2 = position_temp[1].split('"')
+            edit_url = split_url[0] + 'posting.php?mode=editpost&p=' + position_temp2[0]
+        except:
+            edit_url = None
+        return edit_url
+
     def check_adding_new_post(self, zip_link):
         self.dice_roll_and_sleep()
         try:
@@ -340,7 +374,7 @@ class LoginAndPosting():
             self.edit_post_url = self.find_last_post_xfr()
 
         elif self.forum_type == 2:
-            print('Its phpBB type forum!')
+            print('Its phpBB v3x type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
 
             token = self.get_tok(r.text, 'sid')
@@ -370,8 +404,80 @@ class LoginAndPosting():
         elif self.forum_type == 3:
             print('Its SMF type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
-            print(r.text)
-            # TODO: перенести сюда все из тестового файла. ТАм рабочая функция логина + допилить постинг
+            smf_session_id = r.text.split("hashLoginPassword(this, '")[1].split("'")[0]
+            smf_random_input = r.text.split("<input type=\"hidden\" name=\"hash_passwrd\" value=\"\" />"
+                                            "<input type=\"hidden\" name=\"")[1].split("\"")[0]
+
+            self.auth[smf_random_input] = smf_session_id
+            self.dice_roll_and_sleep()
+            response = self.session.post(self.login_url + '2', data=self.auth)
+            self.dice_roll_and_sleep()
+
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            seqnum = self.get_tok(r.text, 'seqnum')
+            additional_options = self.get_tok(r.text, 'additional_options')
+            last_msg = self.get_tok(r.text, 'last_msg')
+            message_mode = self.get_tok(r.text, 'message_mode')
+            subject = self.get_tok(r.text, 'subject')
+            topic = self.get_tok(r.text, 'topic')
+
+            payload = {smf_random_input: smf_session_id,
+                       'seqnum': seqnum,
+                       'additional_options': additional_options,
+                       'last_msg': last_msg,
+                       'notify': '0',
+                       'message_mode': message_mode,
+                       'sel_color': '',
+                       'sel_size': '',
+                       'sel_face': '0',
+                       'icon': 'xx',
+                       'tags': '',
+                       'topic': topic,
+                       'subject': subject,
+                       'message': self.body_post}
+
+            response = self.session.post(self.url_for_post.replace('post', 'post2'), data=payload, headers=self.headers)
+            self.dice_roll_and_sleep()
+            self.edit_post_url = self.find_last_post_smf()
+
+        if self.forum_type == 4:
+            print('Its phpBB 2.x type forum WITH Cookies!!!', self.url_for_post)
+            print(self.login_url, self.auth)
+            r = self.session.get(self.login_url, headers=self.headers)
+            pbb_sid = r.cookies[self.auth['cookie']]
+            self.dice_roll_and_sleep()
+            print(self.login_url+"?sid=" + pbb_sid)
+            print(self.auth)
+
+            response = self.session.post(self.login_url+"?sid=" + pbb_sid, data=self.auth, cookies=r.cookies)
+            self.dice_roll_and_sleep()
+            with open('test2.html', 'w', encoding="utf-8") as f:
+                f.write(response.text)
+            f.close()
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            sid = self.get_tok(r.text, 'sid')
+            t = self.get_tok(r.text, 't')
+
+            payload = {'subject': '',
+                       'post_icon': '0',
+                       'tags': '',
+                       'addbbcode20': '#444444',
+                       'addbbcode22': '0',
+                       'helpbox': 'Font size: [size=x-small]small text[/size]',
+                       'mode': 'reply',
+                       'sid': sid,
+                       't': t,
+                       'post': 'Submit',
+                       'message': self.body_post}
+            self.dice_roll_and_sleep()
+            response = self.session.post(self.url_for_post, data=payload,
+                                         headers=self.headers)  # Временно заблокировал постинг
+            with open('test1.html', 'w', encoding="utf-8") as f:
+                f.write(response.text)
+            f.close()
+            self.dice_roll_and_sleep()
+            self.edit_post_url = self.find_last_post_unknownbb(self.auth['username'])
+
         return self.edit_post_url
 
     def post_to(self):
