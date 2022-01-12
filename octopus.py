@@ -20,6 +20,7 @@ import img_upload
 import sys
 from bs4 import BeautifulSoup
 
+
 Form, Window = uic.loadUiType("octopus_gui.ui")
 
 app = QApplication(sys.argv)
@@ -33,6 +34,24 @@ PROJECT_ID = 20
 
 checkbox_dict = dict()
 
+
+def check_qlist_items():
+    items = []
+    checked_threads = []
+    for index in range(form.listWidget.count()):
+        items.append(form.listWidget.item(index))
+        if form.listWidget.item(index).checkState() == Qt.Checked:
+            print('Checked!!')
+            print(form.listWidget.item(index).text().split('||')[0])
+
+            # checked_threads.append()
+    labels = [i.text() for i in items]
+    print(labels)
+    #
+    # for index in range(form.QListWidgetItem):
+    #     if form.listWidget.Labels.item(index).checkState() == Qt.Checked:
+    #         checked_items.append(form.listWidget.Labels.item(index))
+    # print(checked_items)
 
 class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
     def __init__(self):
@@ -392,15 +411,15 @@ def add_new_thread_in_project_list(project_id):
                 item.setCheckState(QtCore.Qt.Checked)
                 item.setFlags(
                     QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
-                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
             else:
-                thread_info = elem[1] + ' ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
         else:
-            thread_info = elem[1] + ' ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
+            thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
             item.setText(thread_info)
             form.listWidget.addItem(item)
 
@@ -732,6 +751,10 @@ form.pushButton_4.clicked.connect(send_post)
 form.pushButton_delete.clicked.connect(delete_thread_from_place)
 
 form.tableWidget.cellDoubleClicked.connect(view_cell)
+
+form.pushButton_test.clicked.connect(check_qlist_items)
+
+print('ho',form.listWidget.count())
 
 window.show()
 app.exec()

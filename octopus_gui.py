@@ -254,6 +254,9 @@ class Ui_MainWindow(object):
         self.label_25.setText("")
         self.label_25.setObjectName("label_25")
         self.formLayout_4.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.label_25)
+        self.pushButton_test = QtWidgets.QPushButton(self.groupBox_5)
+        self.pushButton_test.setGeometry(QtCore.QRect(10, 160, 93, 28))
+        self.pushButton_test.setObjectName("pushButton_test")
         self.tabWidget.addTab(self.tab_4, "")
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
@@ -286,7 +289,7 @@ class Ui_MainWindow(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollArea_2.setObjectName("scrollArea_2")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 98, 28))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 1296, 762))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.verticalLayoutWidget_5 = QtWidgets.QWidget(self.scrollAreaWidgetContents_2)
         self.verticalLayoutWidget_5.setGeometry(QtCore.QRect(9, 39, 1281, 781))
@@ -1006,7 +1009,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -1040,6 +1043,7 @@ class Ui_MainWindow(object):
         self.label_22.setText(_translate("MainWindow", "PICS UPLOAD:"))
         self.label_23.setText(_translate("MainWindow", "ZIP UPLOAD:"))
         self.label_24.setText(_translate("MainWindow", "..."))
+        self.pushButton_test.setText(_translate("MainWindow", "ПРОВЕРКА"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), _translate("MainWindow", "Models and Folders"))
         self.pushButton_8.setText(_translate("MainWindow", "START CHECK AND UPLOAD DATA"))
         self.checkBox_11.setText(_translate("MainWindow", "Auto-search links (once in 3 min)"))
