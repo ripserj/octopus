@@ -50,6 +50,15 @@ def starting_id(prefix, starting_id):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
+def update_thread(thread_id, name, prefix, starting_id, content_type):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (name, prefix, starting_id, content_type, thread_id)
+    sqlite_param = """Update threads set name = ?, prefix = ?, starting_id = ?, content_type = ? where thread_id = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
 
 def insert_zip_link(zip_link, zipfile):
     conn = sqlite3.connect('links.db')
@@ -124,17 +133,24 @@ def check_new_project_name(new_project_name):
     else:
         return True
 
-def new_thread(name, prefix, starting_id, project_id):
-    data_insert = (name, prefix, starting_id, project_id)
-    sqlite_param = """INSERT INTO threads(name, prefix, starting_id, project_id) 
-       VALUES(?, ?, ?, ?);"""
+def new_thread(name, prefix, starting_id, project_id, content_type):
+    data_insert = (name, prefix, starting_id, project_id, content_type)
+    sqlite_param = """INSERT INTO threads(name, prefix, starting_id, project_id, content_type) 
+       VALUES(?, ?, ?, ?, ?);"""
     cur.execute(sqlite_param, data_insert)
     conn.commit()
     return True
 
+
 def select_all_threads_in_project(project_id):
     sql_select_query = """select * from threads where project_id = ?"""
     cur.execute(sql_select_query, (project_id,))
+    records = cur.fetchall()
+    return records
+
+def select_one_thread_from_threads(thread_id):
+    sql_select_query = """select * from threads where thread_id = ?"""
+    cur.execute(sql_select_query, (thread_id,))
     records = cur.fetchall()
     return records
 

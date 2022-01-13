@@ -35,23 +35,8 @@ PROJECT_ID = 20
 checkbox_dict = dict()
 
 
-def check_qlist_items():
-    items = []
-    checked_threads = []
-    for index in range(form.listWidget.count()):
-        items.append(form.listWidget.item(index))
-        if form.listWidget.item(index).checkState() == Qt.Checked:
-            print('Checked!!')
-            print(form.listWidget.item(index).text().split('||')[0])
 
-            # checked_threads.append()
-    labels = [i.text() for i in items]
-    print(labels)
-    #
-    # for index in range(form.QListWidgetItem):
-    #     if form.listWidget.Labels.item(index).checkState() == Qt.Checked:
-    #         checked_items.append(form.listWidget.Labels.item(index))
-    # print(checked_items)
+
 
 class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
     def __init__(self):
@@ -183,15 +168,30 @@ class ContentCheckAndUpload(QThread):
         self.file_names_str = ''
         self.post_id = ''
         self.thread = 50
+        self.checked_threads = []
 
     def check_existence_arch_on_server(self, arch_name):
         return img_upload.login_host(filename=arch_name + '.zip')
 
+    def check_qlist_items(self):
+        """
+        # ВОЗВРАЩАЕТ СПИСОК id ВЫДЕЛЕННЫХ ГАЛОЧКОЙ ТРЕДОВ
+        :return: checked_threads
+        """
+        self.checked_threads = []
+        for index in range(form.listWidget.count()):
+            if form.listWidget.item(index).checkState() == Qt.Checked:
+                self.checked_threads.append(form.listWidget.item(index).text().split('||')[0])
+
+
     def run(self):
         all_threads = sw.select_all(self.project_id)
         form.groupBox_5.setTitle(str(PROJECT_ID))
+        self.check_qlist_items()
 
         for elem in all_threads:
+            if str(elem[0]) not in self.checked_threads:
+                continue
             current_dir = str(elem[2]) + str(elem[3])
             self.thread = elem[0]
             if uu.dir_exist(current_dir) and uu.check_dir(current_dir):
@@ -400,6 +400,7 @@ def add_text_label_in_tab():
 def add_new_thread_in_project_list(project_id):
     all_threads = sw.select_all_threads_in_project(project_id)
     form.listWidget.clear()
+    content_type_list = {0: 'Pics', 1: 'Vids'}
     for elem in all_threads:
         current_dir = str(elem[2]) + str(elem[3])
         item = QtWidgets.QListWidgetItem()
@@ -411,15 +412,15 @@ def add_new_thread_in_project_list(project_id):
                 item.setCheckState(QtCore.Qt.Checked)
                 item.setFlags(
                     QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
-                thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
             else:
-                thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
         else:
-            thread_info = str(elem[0]) + '||     ' + elem[1] + '    ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
+            thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
             item.setText(thread_info)
             form.listWidget.addItem(item)
 
@@ -477,22 +478,23 @@ def add_new_thread_folder():
     name = form.lineEdit_11.text().strip()
     prefix = form.lineEdit_12.text().strip()
     starting_id = form.lineEdit_13.text().strip()
+    existing_id = form.label_54.text().strip()
+    content_type = form.comboBox_6.currentIndex()
     if name and prefix and starting_id:
-        print('Что-то вводили')
         try:
-            sw.new_thread(name, prefix, starting_id, PROJECT_ID)
-            print('Новая запись добавлена!')
+            if existing_id:
+                sw.update_thread(existing_id, name, prefix, starting_id, content_type)
+            else:
+                sw.new_thread(name, prefix, starting_id, PROJECT_ID, content_type)
             try:
                 uu.create_dir(prefix + str(starting_id))
                 add_new_thread_in_project_list(PROJECT_ID)
-
             except:
                 print('Создать папку для записи не удалось!')
         except:
             print('Ошибка записи в БД')
-
     else:
-        print('Данных нет')
+        print('Данных недосточно!')
 
 
 def load_current_place():
@@ -752,9 +754,28 @@ form.pushButton_delete.clicked.connect(delete_thread_from_place)
 
 form.tableWidget.cellDoubleClicked.connect(view_cell)
 
-form.pushButton_test.clicked.connect(check_qlist_items)
 
-print('ho',form.listWidget.count())
+def load_thread_data_for_edit():
+    itemNumber = form.listWidget.currentRow()
+    item = form.listWidget.item(itemNumber)
+    thread_id = item.text().split('||')[0]
+    data = sw.select_one_thread_from_threads(thread_id)
+    print(data)
+    form.lineEdit_11.setText(data[0][1])
+    form.lineEdit_12.setText(data[0][2])
+    form.lineEdit_13.setText(str(data[0][3]))
+    form.label_54.setText(str(data[0][0]))
+    if data[0][5]:
+        form.comboBox_6.setCurrentIndex(int(data[0][5]))
+    else:
+        form.comboBox_6.setCurrentIndex(0)
+
+
+
+
+
+form.listWidget.itemDoubleClicked.connect(load_thread_data_for_edit)
+
 
 window.show()
 app.exec()
