@@ -3,6 +3,9 @@ import shutil
 import time
 import zipfile
 from PIL import Image
+
+import cv2
+
 import sql_work as sw
 import unzip_unrar as uu
 import re
@@ -24,11 +27,9 @@ def reset_data():
         os.mkdir(ROOT_DIR)
         folders_in_project = sw.select_folders_in_current_project()
         for elem in folders_in_project:
-            print(elem[0]+str(elem[1]))
-            full_path = os.path.join(ROOT_DIR, elem[0]+str(elem[1]))
+            print(elem[0] + str(elem[1]))
+            full_path = os.path.join(ROOT_DIR, elem[0] + str(elem[1]))
             os.mkdir(full_path)
-
-
 
 
 def clear_all(home):
@@ -98,6 +99,92 @@ def search_date_in_name(may_be_date):
             return "Валидный год не обнаружен..."
     else:
         return "No data"
+
+
+def check_and_rename(current_dir):
+    print(current_dir)
+    folder = ROOT_DIR + '\\' + current_dir
+    type_of_file = ''
+    for root, dirs, files in os.walk(folder):
+        for elem in files:  # ищем видео и переименовываем в соответствии с названием папки
+            extensions = ['.mp4', '.wmv', '.avi']
+            if any(x in elem.lower() for x in extensions):
+                # if '.mp4' in lower_elem or '.wmv' in lower_elem or '.avi' in lower_elem:
+                type_of_file = elem[-3:].upper()
+                current_file = os.path.join(folder, elem)
+                size = os.path.getsize(current_file)
+                size = round(size / 1048576, 1)
+
+                new_file = os.path.join(folder, current_dir + '.' + type_of_file)
+                print(new_file)
+                print(current_file, new_file)
+                os.rename(current_file, new_file)
+                print(new_file)
+                cap = cv2.VideoCapture(new_file)
+                print('ggg')
+                length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                fps = cap.get(cv2.CAP_PROP_FPS)
+
+                duration = round(length / fps)
+                print(duration)
+                hours = '0' + str(int(duration // 3600))
+
+                if int(duration / 60) < 10:
+                    minutes = '0' + str(int(duration / 60))
+                else:
+                    minutes = str(int(duration / 60))
+                if int(duration % 60) < 10:
+                    seconds = '0' + str(int(duration % 60))
+                else:
+                    seconds = str(int(duration % 60))
+
+                print(f'всего кадров:{length}, разрешение: {width}х{height}, FPS: {fps}')
+                print(f'длительность: {hours}:{minutes}:{seconds}')
+
+                if width > height:
+                    num_of_screens = 8
+                    pics_in_row = 2
+                else:
+                    num_of_screens = 9
+                    pics_in_row = 3
+                step = int(length / (num_of_screens + 1))
+                images = []
+                for x_frame in range(step, length - 20, step):
+                    cap.set(1, x_frame)
+                    ret, frame = cap.read()
+                    jpg_path = os.path.join(folder, "test" + str(x_frame) + ".jpg")
+                    images.append(jpg_path)
+                    cv2.imwrite(jpg_path, frame)
+                cap.release()
+                # двлее из полученных фоток делаем скринлист
+                total_width = width * pics_in_row
+                max_height = height * (int(num_of_screens / pics_in_row))
+
+                x_offset = 0
+                y_offset = 0
+                new_im = Image.new('RGB', (total_width, max_height))
+                counter = 0
+                for image in images:
+                    im = Image.open(image)
+                    new_im.paste(im, (x_offset, y_offset))
+                    x_offset += im.size[0]
+                    counter += 1
+                    if counter % pics_in_row == 0:
+                        y_offset += height
+                        x_offset = 0
+
+                jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
+                new_im.save(jpg_path)
+
+                print(type_of_file)
+    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb'
+
+params = []
+params = check_and_rename('vd_fmdinl1000')
+for elem in params:
+    print(elem)
 
 
 def rename_files(path, file_name, zip=0):
@@ -176,7 +263,6 @@ def rename_files(path, file_name, zip=0):
     return returned_date_from_pic_info, returned_date_from_file_info, some_file_names
 
 
-
 def check_data_in_folder(folder):
     path = os.path.join(ROOT_DIR, folder)
     if len(os.listdir(path)) == 1:  # В целевой папке один файл или папка
@@ -194,6 +280,7 @@ def set_name_search(path):
         set_date = search_date_in_name(may_be_date)
         set_name = set_name.replace("zip", "")
     return set_date, set_name
+
 
 def unpack(path):
     file_names = []
@@ -213,7 +300,7 @@ def unpack(path):
             print('Распаковка завершена...')
 
             print("Архив удален, проверяю наличие вложенных папок...")
-            photo_date, file_date, file_names  = rename_files(path, file_name, zip=1)
+            photo_date, file_date, file_names = rename_files(path, file_name, zip=1)
             file_date = date_from_file_info
             # num_of_pics = img_upload.select_and_send_pics(path)
 
@@ -225,10 +312,7 @@ def unpack(path):
             photo_date, file_date, file_names = rename_files(path, file_name)
             # num_of_pics = img_upload.select_and_send_pics(path)
 
-
     return photo_date, file_date, file_names
-
-
 
 
 def load_data_main():
@@ -308,4 +392,3 @@ def load_data_main():
             print("Программа прервана, проверьте папку " + path)
     print('Запускаю очистку папок и создание бекапа!')
     clear_all(ROOT_DIR)
-

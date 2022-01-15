@@ -194,7 +194,13 @@ class ContentCheckAndUpload(QThread):
                 continue
             current_dir = str(elem[2]) + str(elem[3])
             self.thread = elem[0]
-            if uu.dir_exist(current_dir) and uu.check_dir(current_dir):
+            if 'vd_' in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
+                print('Папка с видео  - другая логика обработки!')
+                if main.check_and_rename(current_dir):
+                    print('yyy')
+
+
+            elif 'vd_' not in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
                 fill_thread.reset()
                 fill_thread2.reset()
                 print('Working with thread: ' + elem[1])
