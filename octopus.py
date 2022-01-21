@@ -196,8 +196,30 @@ class ContentCheckAndUpload(QThread):
             self.thread = elem[0]
             if 'vd_' in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
                 print('Папка с видео  - другая логика обработки!')
-                if main.check_and_rename(current_dir):
-                    print('yyy')
+                try:
+                    fill_thread.reset()
+                    fill_thread2.reset()
+
+                    vid_info = main.check_and_rename(current_dir)
+                    print(vid_info)
+                    file_name = vid_info[8]
+                    fill_thread.target = 50
+                    fill_thread.start()
+
+                    to_python = img_upload.upload_img(vid_info[7], vid_info[5])
+                    print(to_python)
+                    fill_thread.target = 100
+                    fill_thread.start()
+
+                    ftp = FTP(logins.FTP_HOST)
+                    response = ftp.login(logins.FTP_LOGIN, logins.FTP_PASS)
+
+                    with open(file_name, 'rb') as f:
+                        ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(vid_info[9] / 262144))
+                    print("конец загрузки файла", file_name)
+
+                except:
+                    print('с обработкой видео проблемы!')
 
 
             elif 'vd_' not in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
@@ -273,6 +295,9 @@ class ContentCheckAndUpload(QThread):
                         print('Невозможно прочитать файл upload-test.txt')
 
                     for elem in otbor:
+
+                        print('elem:', elem, 'path:', path)
+
                         to_python = img_upload.upload_img(elem, path)
                         print(to_python)
                         print('загружаю ' + elem)

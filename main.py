@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 import time
 import zipfile
@@ -102,89 +103,94 @@ def search_date_in_name(may_be_date):
 
 
 def check_and_rename(current_dir):
-    print(current_dir)
     folder = ROOT_DIR + '\\' + current_dir
     type_of_file = ''
-    for root, dirs, files in os.walk(folder):
-        for elem in files:  # ищем видео и переименовываем в соответствии с названием папки
-            extensions = ['.mp4', '.wmv', '.avi']
-            if any(x in elem.lower() for x in extensions):
-                # if '.mp4' in lower_elem or '.wmv' in lower_elem or '.avi' in lower_elem:
-                type_of_file = elem[-3:].upper()
-                current_file = os.path.join(folder, elem)
-                size = os.path.getsize(current_file)
-                size = round(size / 1048576, 1)
+    files = os.listdir(folder)
+    for elem in files:  # ищем видео и переименовываем в соответствии с названием папки
+        extensions = ['.mp4', '.wmv', '.avi']
+        if any(x in elem.lower() for x in extensions):
+            type_of_file = elem[-3:].upper()
 
-                new_file = os.path.join(folder, current_dir + '.' + type_of_file)
-                print(new_file)
-                print(current_file, new_file)
-                os.rename(current_file, new_file)
-                print(new_file)
-                cap = cv2.VideoCapture(new_file)
-                print('ggg')
-                length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                fps = cap.get(cv2.CAP_PROP_FPS)
+            current_file = os.path.join(folder, elem)
 
-                duration = round(length / fps)
-                print(duration)
-                hours = '0' + str(int(duration // 3600))
+            # base = os.path.basename(current_file)
+            # source_file_name = os.path.splitext(base)[0]
 
-                if int(duration / 60) < 10:
-                    minutes = '0' + str(int(duration / 60))
-                else:
-                    minutes = str(int(duration / 60))
-                if int(duration % 60) < 10:
-                    seconds = '0' + str(int(duration % 60))
-                else:
-                    seconds = str(int(duration % 60))
+            size_in_bts = os.path.getsize(current_file)
+            size = round(size_in_bts / 1048576, 1)
 
-                print(f'всего кадров:{length}, разрешение: {width}х{height}, FPS: {fps}')
-                print(f'длительность: {hours}:{minutes}:{seconds}')
+            new_file = os.path.join(folder, current_dir + '.' + type_of_file)
+            os.rename(current_file, new_file)
+            cap = cv2.VideoCapture(new_file)
+            length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
 
-                if width > height:
-                    num_of_screens = 8
-                    pics_in_row = 2
-                else:
-                    num_of_screens = 9
-                    pics_in_row = 3
-                step = int(length / (num_of_screens + 1))
-                images = []
-                for x_frame in range(step, length - 20, step):
-                    cap.set(1, x_frame)
-                    ret, frame = cap.read()
-                    jpg_path = os.path.join(folder, "test" + str(x_frame) + ".jpg")
-                    images.append(jpg_path)
-                    cv2.imwrite(jpg_path, frame)
-                cap.release()
-                # двлее из полученных фоток делаем скринлист
-                total_width = width * pics_in_row
-                max_height = height * (int(num_of_screens / pics_in_row))
+            duration = round(length / fps)
+            hours = '0' + str(int(duration // 3600))
+            duration = duration - 3600 * int(duration // 3600)
 
-                x_offset = 0
-                y_offset = 0
-                new_im = Image.new('RGB', (total_width, max_height))
-                counter = 0
-                for image in images:
-                    im = Image.open(image)
-                    new_im.paste(im, (x_offset, y_offset))
-                    x_offset += im.size[0]
-                    counter += 1
-                    if counter % pics_in_row == 0:
-                        y_offset += height
-                        x_offset = 0
+            if int(duration / 60) < 10:
+                minutes = '0' + str(int(duration / 60))
+            else:
+                minutes = str(int(duration / 60))
+            if int(duration % 60) < 10:
+                seconds = '0' + str(int(duration % 60))
+            else:
+                seconds = str(int(duration % 60))
 
-                jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
-                new_im.save(jpg_path)
+            print(f'всего кадров:{length}, разрешение: {width}х{height}, FPS: {fps}')
+            print(f'длительность: {hours}:{minutes}:{seconds}')
 
-                print(type_of_file)
-    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb'
+            if width > height:
+                num_of_screens = 8
+                pics_in_row = 2
+            else:
+                num_of_screens = 9
+                pics_in_row = 3
+            step = int(length / (num_of_screens + 1))
+            images = []
+            for x_frame in range(step, length - 20, step):
+                x_frame = x_frame + random.randint(-50, 50)
+                cap.set(1, x_frame)
+                ret, frame = cap.read()
+                jpg_path = os.path.join(folder, "test" + str(x_frame) + ".jpg")
+                images.append(jpg_path)
+                cv2.imwrite(jpg_path, frame)
+            cap.release()
+            # двлее из полученных фоток делаем скринлист
 
-params = []
-params = check_and_rename('vd_fmdinl1000')
-for elem in params:
-    print(elem)
+            beetwen_pics = int(width / 200)
+            total_width = width * pics_in_row + beetwen_pics * (pics_in_row + 1)
+            max_height = height * (int(num_of_screens / pics_in_row)) + beetwen_pics * (
+                    int(num_of_screens / pics_in_row) + 1)
+
+            x_offset = beetwen_pics
+            y_offset = beetwen_pics
+            new_im = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+            counter = 0
+            for image in images:
+                im = Image.open(image)
+                new_im.paste(im, (x_offset, y_offset))
+                x_offset += im.size[0] + beetwen_pics
+                counter += 1
+                if counter % pics_in_row == 0:
+                    y_offset += height + beetwen_pics
+                    x_offset = beetwen_pics
+
+            jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
+            new_im.save(jpg_path)
+
+            print(type_of_file)
+
+    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb', folder, elem, current_dir + "_scr.jpg", new_file, size_in_bts
+
+
+# params = []
+# params = check_and_rename('vd_fmdinl1000')
+# for elem in params:
+#     print(elem)
 
 
 def rename_files(path, file_name, zip=0):
