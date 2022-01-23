@@ -42,13 +42,14 @@ def update_post_info(post_id, zip_id, quantity):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
-def starting_id(prefix, starting_id):
+def starting_id(thread_id, project_id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    data_update = (starting_id+1, prefix, starting_id)
-    sqlite_param = """Update threads set starting_id = ? where prefix = ?  and starting_id = ?"""
+    data_update = (thread_id, project_id)
+    sqlite_param = """Update threads set starting_id = starting_id + 1 where thread_id = ? and project_id = ?"""
     cur.execute(sqlite_param, data_update)
     conn.commit()
+
 
 def update_thread(thread_id, name, prefix, starting_id, content_type):
     conn = sqlite3.connect('links.db')
@@ -220,14 +221,14 @@ def check_thread_in_posts(folder):
     else:
         return False
 
-def check_zip_file(zip_file):
+def check_zip_file(folder):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    sql_select_query = """select * from zips where name = ?"""     # убрал link is NULL and
-    cur.execute(sql_select_query, (zip_file,))
+    sql_select_query = """select * from zips where zipid in (select zip_id from post where work_folder = ?) """
+    cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
     if records:
-        return True
+        return records
     else:
         return False
 
@@ -258,12 +259,13 @@ def select_info_from_post(folder):
     sql_select_query = """select * from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
+    print(records)
     return records
 
 def select_info_from_zip(zip_file):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    sql_select_query = """select * from zips where name = ?"""
+    sql_select_query = """select * from zips where name LIKE ?"""
     cur.execute(sql_select_query, (zip_file,))
     records = cur.fetchall()
     return records

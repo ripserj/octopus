@@ -20,7 +20,6 @@ import img_upload
 import sys
 from bs4 import BeautifulSoup
 
-
 Form, Window = uic.loadUiType("octopus_gui.ui")
 
 app = QApplication(sys.argv)
@@ -33,9 +32,6 @@ CURRENT_PROJECT = False
 PROJECT_ID = 20
 
 checkbox_dict = dict()
-
-
-
 
 
 class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА ССЫЛОК НА ФАЙЛХОСТЕ
@@ -62,24 +58,18 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
     def link_search(self):
 
         all_threads = sw.select_all(self.project_id)
-        print(all_threads)
         counter = 0
         zip_uploaded_yes = 0
-
         for elem in all_threads:
             folder = str(elem[2]) + str(elem[3])
-            zip_file = folder + '.zip'
+            zip_info = sw.check_zip_file(folder)
 
-            if uu.dir_exist(folder) and sw.check_zip_file(zip_file):
+            if uu.dir_exist(folder) and zip_info:
+                zip_file = zip_info[0][1]
+                print(zip_file)
 
                 print('запрос c папкой ', folder)
                 post_info = sw.select_info_from_post(folder)
-                zip_info = sw.select_info_from_zip(zip_file)
-                print('+++++++++++++')
-                print(post_info)
-                print(zip_info)
-                print('Тред есть и готов к постингу')
-
                 print('counter = ', counter)
                 try:
                     haystack = img_upload.login_host()
@@ -94,7 +84,6 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                                 print(zip_link)
                                 print(zip_file)
                                 sw.insert_zip_link(zip_link, zip_file)
-
 
                         item = form.tableWidget.item(counter, 4)
 
@@ -183,46 +172,96 @@ class ContentCheckAndUpload(QThread):
             if form.listWidget.item(index).checkState() == Qt.Checked:
                 self.checked_threads.append(form.listWidget.item(index).text().split('||')[0])
 
+    def search_doubles(self):
+        if sw.work_folder_in_base(self.folder):
+            print(f'Рабочая папка {self.folder} уже есть в БД! Работа прервана!')
+            return True
+        elif self.check_existence_arch_on_server(self.folder):
+            print(f'Файл с названием {self.folder} уже есть на файловом хосте! Работа прервана!')
+            return True
+        else:
+            return False
 
     def run(self):
         all_threads = sw.select_all(self.project_id)
         form.groupBox_5.setTitle(str(PROJECT_ID))
         self.check_qlist_items()
-
+        if len(self.checked_threads) > 0:
+            step_thread3 = int(100 / len(self.checked_threads))
+        fill_thread3.reset()
         for elem in all_threads:
             if str(elem[0]) not in self.checked_threads:
                 continue
-            current_dir = str(elem[2]) + str(elem[3])
+            self.folder = str(elem[2]) + str(elem[3])
             self.thread = elem[0]
-            if 'vd_' in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
+            self.folder
+            if 'vd_' in self.folder and uu.dir_exist(self.folder) and uu.check_dir(self.folder):
                 print('Папка с видео  - другая логика обработки!')
+                if self.search_doubles():
+                    break
                 try:
                     fill_thread.reset()
                     fill_thread2.reset()
+                    form.label_24.setText("...   " + self.folder + ".....folder checked!")
 
-                    vid_info = main.check_and_rename(current_dir)
+                    vid_info = main.check_and_rename(self.folder)
                     print(vid_info)
+                    resolution = vid_info[2]
+                    length = vid_info[1]
+                    format_video = vid_info[0]
                     file_name = vid_info[8]
+                    screens = vid_info[7]
+                    size = vid_info[9]
+                    size_mb = vid_info[4]
+                    self.set_main = vid_info[6]
+                    pics_in_row = int(vid_info[10])
                     fill_thread.target = 50
                     fill_thread.start()
 
-                    to_python = img_upload.upload_img(vid_info[7], vid_info[5])
-                    print(to_python)
+                    img_upload.make_text_links(screens, variant=pics_in_row)
+                    ut_text = ''
+                    try:
+                        with open('upload-test.txt', 'r') as ut:
+                            ut_text = ut.read()
+                    except:
+                        print('Невозможно прочитать файл upload-test.txt')
+
+                    for image in screens:
+                        to_python = img_upload.upload_img(image, vid_info[5], max_th_size=420)
+                        sw.img_in_base(image, to_python['th_url'], to_python['show_url'], self.post_id)
+                        print(to_python)
+                        ut_text = ut_text.replace('show_url' + image, to_python['show_url'])
+                        ut_text = ut_text.replace('th_url' + image, to_python['th_url'])
+
+                    print(ut_text)
+                    ut_text = 'Resolution: ' + str(resolution) + '\nTime: ' + str(length) + '\nFormat: ' + str(
+                        format_video) + '\nsize: ' + str(size_mb) + '\n\n' + ut_text
+
                     fill_thread.target = 100
                     fill_thread.start()
+                    form.label_24.setText("...   Creating screens and uploading for " + self.folder + ".....success!")
 
                     ftp = FTP(logins.FTP_HOST)
                     response = ftp.login(logins.FTP_LOGIN, logins.FTP_PASS)
 
                     with open(file_name, 'rb') as f:
-                        ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(vid_info[9] / 262144))
+                        ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(size / 262144))
                     print("конец загрузки файла", file_name)
+                    form.label_24.setText("...   Uploading vid from " + self.folder + ".....success!")
+
+                    # ЗАПИСЬ В БД основы для поста и информации о видео-файле
+
+                    self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date,
+                                                   self.file_date, 'video', self.thread)
+                    sw.save_message(self.post_id, ut_text)
+                    zip_id = sw.zip_in_base(file_name.split('\\')[-1], str(size))
+                    sw.update_post_info(self.post_id, zip_id, 1)
 
                 except:
                     print('с обработкой видео проблемы!')
 
 
-            elif 'vd_' not in current_dir and uu.dir_exist(current_dir) and uu.check_dir(current_dir):
+            elif 'vd_' not in self.folder and uu.dir_exist(self.folder) and uu.check_dir(self.folder):
                 fill_thread.reset()
                 fill_thread2.reset()
                 print('Working with thread: ' + elem[1])
@@ -251,11 +290,7 @@ class ContentCheckAndUpload(QThread):
                 fill_thread.target = 7
                 fill_thread.start()
 
-                if sw.work_folder_in_base(self.folder):
-                    print(f'Рабочая папка {self.folder} уже есть в БД! Работа прервана!')
-                    break
-                elif self.check_existence_arch_on_server(self.folder):
-                    print(f'Файл с названием {self.folder}.zip уже есть на файловом хосте! Работа прервана!')
+                if self.search_doubles():
                     break
                 else:
                     try:
@@ -269,6 +304,8 @@ class ContentCheckAndUpload(QThread):
                         print(self.file_names_str)
                         self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date,
                                                        self.file_date, self.file_names_str, self.thread)
+
+
                     except:
                         print('В БД ничего не записано...')
                     fill_thread.target = 20
@@ -289,15 +326,10 @@ class ContentCheckAndUpload(QThread):
                     try:
                         with open('upload-test.txt', 'r') as ut:
                             ut_text = ut.read()
-
-
                     except:
                         print('Невозможно прочитать файл upload-test.txt')
 
                     for elem in otbor:
-
-                        print('elem:', elem, 'path:', path)
-
                         to_python = img_upload.upload_img(elem, path)
                         print(to_python)
                         print('загружаю ' + elem)
@@ -311,7 +343,7 @@ class ContentCheckAndUpload(QThread):
                     print(ut_text)
                     sw.save_message(self.post_id, ut_text)
 
-                time.sleep(1)
+                time.sleep(0.2)
                 print('Формируем архив')
                 file_name = uu.pack_and_del(path)
                 # проверка: в папке 1 zip с размером не менее 1Мб, созданный не более минуты назад
@@ -343,12 +375,19 @@ class ContentCheckAndUpload(QThread):
 
                 else:
                     print("Программа прервана, проверьте папку " + path)
+            fill_thread3.target = fill_thread3.target + step_thread3
+            fill_thread3.start()
+        if fill_thread3.target > 90:
+            fill_thread3.target = 100
+            fill_thread3.start()
 
 
 fill_thread = CThread(form.progressBar_5.value())
 fill_thread.valueChanged.connect(form.progressBar_5.setValue)
 fill_thread2 = CThread(form.progressBar_6.value())
 fill_thread2.valueChanged.connect(form.progressBar_6.setValue)
+fill_thread3 = CThread(form.progressBar_7.value())
+fill_thread3.valueChanged.connect(form.progressBar_7.setValue)
 
 ContentCheckAndUpload_instance = ContentCheckAndUpload()
 
@@ -443,15 +482,18 @@ def add_new_thread_in_project_list(project_id):
                 item.setCheckState(QtCore.Qt.Checked)
                 item.setFlags(
                     QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
-                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[
+                    elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 20 * ' . ' + 'READY!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
             else:
-                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
+                thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[
+                    elem[5]] + '    ||  WORK folder:  ' + str(elem[2]) + str(elem[3]) + 50 * ' . ' + 'empty!'
                 item.setText(thread_info)
                 form.listWidget.addItem(item)
         else:
-            thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[elem[5]] + '    ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
+            thread_info = str(elem[0]) + '||     ' + elem[1] + '   ' + content_type_list[
+                elem[5]] + '    ||  ' + 30 * ' .' + 'No folder ' + current_dir + ' in Resource'
             item.setText(thread_info)
             form.listWidget.addItem(item)
 
@@ -663,7 +705,7 @@ def view_info_from_cell(row):
             type_place_dict[place_name] = elem[4]
 
         place_names.sort()
-        print('place_names:',place_names)
+        print('place_names:', place_names)
         counter = 0
         for elem in place_names:
             checkbox_name = 'checkBox_u' + str(counter)
@@ -678,7 +720,7 @@ def view_info_from_cell(row):
                 obj.setChecked(False)
             counter += 1
             checkbox_dict[elem] = checkbox_name
-        print('counter = ',counter)
+        print('counter = ', counter)
         for x in range(counter, 29):  # Прячем лишние чекбоксы
             checkbox_name = 'checkBox_u' + str(x)
             obj = getattr(form, checkbox_name)
@@ -730,6 +772,7 @@ class CurrentPost():
         self.date = form.lineEdit_9.text()
         self.pics_code = form.textEdit.toPlainText()
         self.body_post = ''
+        self.folder_name = form.lineEdit_2.text()
 
     def view_info(self):
         print(self.pics_code)
@@ -755,21 +798,27 @@ class CurrentPost():
                 if post.check_adding_new_post(self.zip_url):
                     print(f'++++++  Новый пост на {info_for_login[0][1]} найден успешно! ++++++')
                     if sw.insert_forum_post(elem[1], self.thread_id, self.post_id, self.zip_id, edit_post_url):
+                        sw.starting_id(elem[2], '20')
                         print('запись о новом посте в БД совершена успешно!')
                 else:
                     print(f'------  Пост на {info_for_login[0][1]} найти не удалось! ------')
 
-
-
     def make_body(self):
-        if self.date.strip() != '':
-            self.date = 'Date: ' + self.date + '\n'
-        else:
-            self.date = ''
 
-        self.body_post = 'Set: ' + self.post_name + '\nPics, archive size: ' + self.size_and_quality
-        self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
-        print(self.body_post)
+        if 'vd_' in self.folder_name:
+            self.body_post = 'Femdom: ' + self.post_name
+            self.body_post = self.body_post + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
+            print(self.body_post)
+
+        else:
+            if self.date.strip() != '':
+                self.date = 'Date: ' + self.date + '\n'
+            else:
+                self.date = ''
+
+            self.body_post = 'Set: ' + self.post_name + '\nPics, archive size: ' + self.size_and_quality
+            self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
+            print(self.body_post)
 
 
 def send_post():
@@ -802,11 +851,7 @@ def load_thread_data_for_edit():
         form.comboBox_6.setCurrentIndex(0)
 
 
-
-
-
 form.listWidget.itemDoubleClicked.connect(load_thread_data_for_edit)
-
 
 window.show()
 app.exec()

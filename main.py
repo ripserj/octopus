@@ -113,9 +113,6 @@ def check_and_rename(current_dir):
 
             current_file = os.path.join(folder, elem)
 
-            # base = os.path.basename(current_file)
-            # source_file_name = os.path.splitext(base)[0]
-
             size_in_bts = os.path.getsize(current_file)
             size = round(size_in_bts / 1048576, 1)
 
@@ -144,47 +141,48 @@ def check_and_rename(current_dir):
             print(f'длительность: {hours}:{minutes}:{seconds}')
 
             if width > height:
-                num_of_screens = 8
+                num_of_screens = 6
                 pics_in_row = 2
             else:
-                num_of_screens = 9
+                num_of_screens = 6
                 pics_in_row = 3
             step = int(length / (num_of_screens + 1))
             images = []
+            counter = 0
             for x_frame in range(step, length - 20, step):
+                counter += 1
                 x_frame = x_frame + random.randint(-50, 50)
                 cap.set(1, x_frame)
                 ret, frame = cap.read()
-                jpg_path = os.path.join(folder, "test" + str(x_frame) + ".jpg")
-                images.append(jpg_path)
+                jpg_name = str(counter) + "_" + str(x_frame) + ".jpg"
+                jpg_path = os.path.join(folder, jpg_name)
+                images.append(jpg_name)
                 cv2.imwrite(jpg_path, frame)
             cap.release()
             # двлее из полученных фоток делаем скринлист
 
-            beetwen_pics = int(width / 200)
-            total_width = width * pics_in_row + beetwen_pics * (pics_in_row + 1)
-            max_height = height * (int(num_of_screens / pics_in_row)) + beetwen_pics * (
-                    int(num_of_screens / pics_in_row) + 1)
+            # beetwen_pics = int(width / 200)
+            # total_width = width * pics_in_row + beetwen_pics * (pics_in_row + 1)
+            # max_height = height * (int(num_of_screens / pics_in_row)) + beetwen_pics * (
+            #         int(num_of_screens / pics_in_row) + 1)
+            #
+            # x_offset = beetwen_pics
+            # y_offset = beetwen_pics
+            # new_im = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+            # counter = 0
+            # for image in images:
+            #     im = Image.open(image)
+            #     new_im.paste(im, (x_offset, y_offset))
+            #     x_offset += im.size[0] + beetwen_pics
+            #     counter += 1
+            #     if counter % pics_in_row == 0:
+            #         y_offset += height + beetwen_pics
+            #         x_offset = beetwen_pics
+            #
+            # jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
+            # new_im.save(jpg_path)
 
-            x_offset = beetwen_pics
-            y_offset = beetwen_pics
-            new_im = Image.new('RGB', (total_width, max_height), (255, 255, 255))
-            counter = 0
-            for image in images:
-                im = Image.open(image)
-                new_im.paste(im, (x_offset, y_offset))
-                x_offset += im.size[0] + beetwen_pics
-                counter += 1
-                if counter % pics_in_row == 0:
-                    y_offset += height + beetwen_pics
-                    x_offset = beetwen_pics
-
-            jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
-            new_im.save(jpg_path)
-
-            print(type_of_file)
-
-    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb', folder, elem, current_dir + "_scr.jpg", new_file, size_in_bts
+    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb', folder, elem, images, new_file, size_in_bts, pics_in_row
 
 
 # params = []

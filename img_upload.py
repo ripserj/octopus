@@ -85,15 +85,15 @@ def ftp_upload(file_name):
 # ftp_upload()  функция рабочая, можно допилить прогресс загрузки
 
 
-def upload_img(elem, path):
+def upload_img(elem, path, max_th_size=300):
     img_path = os.path.join(path, elem)
     url = logins.IMG_HOST
     payload = {'content_type': '0',
-               'max_th_size': '300'}
+               'max_th_size': max_th_size}
     files = {
         'img': (elem, open(img_path, 'rb')),
         'content_type': '0',
-        'max_th_size': '300'
+        'max_th_size': max_th_size
     }
     headers = {}
 
