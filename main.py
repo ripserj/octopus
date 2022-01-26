@@ -22,7 +22,7 @@ def reset_data():
     if os.path.isdir(ROOT_DIR):
         shutil.rmtree(ROOT_DIR)
         print('Удаление')
-    time.sleep(1)
+    time.sleep(0.05)
     if not os.path.isdir(ROOT_DIR):
         print('Создание')
         os.mkdir(ROOT_DIR)
@@ -45,9 +45,9 @@ def clear_all(home):
                     print('Архив перемещен!')
                 except:
                     print('файл архива не перемещен!')
-                time.sleep(2)
+                time.sleep(1)
             else:  # удаляем все кроме zip-ов
-                time.sleep(0.05)
+                time.sleep(0.02)
                 os.remove(source)
 
 
@@ -234,9 +234,9 @@ def rename_files(path, file_name, zip=0):
                     except:
                         pass
 
-            time.sleep(0.05)
+            time.sleep(0.01)
             os.rename(current_file_name, destination_file_name)
-            time.sleep(0.05)
+            time.sleep(0.01)
     date_from_pic_info_set.sort()
     date_from_file_info_set.sort()
     returned_date_from_pic_info = ''
@@ -244,7 +244,7 @@ def rename_files(path, file_name, zip=0):
     if date_from_pic_info_set:
         temp_date = date_from_pic_info_set[0].split(':')
         returned_date_from_pic_info = temp_date[1] + '/' + temp_date[2] + '/' + temp_date[0][2:4]
-    print(f"ДАТА НАЙДЕНАЯ В ЗАГОЛОВКАХ ФОТО  - {returned_date_from_pic_info}")
+    # print(f"ДАТА НАЙДЕНАЯ В ЗАГОЛОВКАХ ФОТО  - {returned_date_from_pic_info}")
 
     if date_from_file_info_set and zip == 0:
         if date_from_file_info_set[0].month < 10:
@@ -258,11 +258,11 @@ def rename_files(path, file_name, zip=0):
         year = str(date_from_file_info_set[0].year)
         returned_date_from_file_info = month + '/' + day + '/' + year[2:4]
 
-        print(f"ДАТА НАЙДЕНАЯ В ИНФО-ФАЙЛОВ  - {returned_date_from_file_info}")
+        # print(f"ДАТА НАЙДЕНАЯ В ИНФО-ФАЙЛОВ  - {returned_date_from_file_info}")
 
-    time.sleep(0.1)
+    time.sleep(0.01)
     delete_path = os.path.join(path, file_name)
-    time.sleep(0.1)
+    time.sleep(0.01)
     shutil.rmtree(delete_path)
     return returned_date_from_pic_info, returned_date_from_file_info, some_file_names
 

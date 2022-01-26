@@ -66,11 +66,7 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
 
             if uu.dir_exist(folder) and zip_info:
                 zip_file = zip_info[0][1]
-                print(zip_file)
-
-                print('запрос c папкой ', folder)
                 post_info = sw.select_info_from_post(folder)
-                print('counter = ', counter)
                 try:
                     haystack = img_upload.login_host()
 
@@ -268,7 +264,7 @@ class ContentCheckAndUpload(QThread):
                 form.groupBox_5.setTitle(elem[1])
                 fill_thread.target = 2
                 fill_thread.start()
-                time.sleep(0.1)
+                time.sleep(0.05)
                 self.folder = elem[2] + str(elem[3])
 
                 ready, path = main.check_data_in_folder(self.folder)
@@ -295,13 +291,13 @@ class ContentCheckAndUpload(QThread):
                 else:
                     try:
                         self.photo_date, self.file_date, self.file_names = main.unpack(path)
-                        print(self.photo_date, self.file_date, self.file_names)
+                        # print(self.photo_date, self.file_date, self.file_names)
                     except:
                         print('Распаковка сломалась!')
                     try:
                         self.file_names_str = self.file_names[2] + '  ' + self.file_names[3] + '  ' + self.file_names[4]
 
-                        print(self.file_names_str)
+                        # print(self.file_names_str)
                         self.post_id = sw.add_new_post(self.set_date, self.set_main, self.folder, self.photo_date,
                                                        self.file_date, self.file_names_str, self.thread)
 
@@ -310,12 +306,11 @@ class ContentCheckAndUpload(QThread):
                         print('В БД ничего не записано...')
                     fill_thread.target = 20
                     fill_thread.start()
-                    print('self.post_id=', self.post_id)
 
                     try:
                         quantity, otbor = img_upload.select_and_send_pics(path)
-                        print('Количество картинок - ' + str(quantity))
-                        print(otbor)
+                        # print('Количество картинок - ' + str(quantity))
+                        # print(otbor)
                         fill_thread.target = 32
                         fill_thread.start()
                     except:
@@ -330,8 +325,13 @@ class ContentCheckAndUpload(QThread):
                         print('Невозможно прочитать файл upload-test.txt')
 
                     for elem in otbor:
-                        to_python = img_upload.upload_img(elem, path)
-                        print(to_python)
+                        print(elem, path)
+                        try:
+                            to_python = img_upload.upload_img(elem, path)
+                        except:
+                            print('Загрузка картинок на файл-хост не удалась.')
+                            break
+                        # print(to_python)
                         print('загружаю ' + elem)
                         fill_thread.target += 7
                         fill_thread.start()
@@ -343,7 +343,7 @@ class ContentCheckAndUpload(QThread):
                     print(ut_text)
                     sw.save_message(self.post_id, ut_text)
 
-                time.sleep(0.2)
+                time.sleep(0.1)
                 print('Формируем архив')
                 file_name = uu.pack_and_del(path)
                 # проверка: в папке 1 zip с размером не менее 1Мб, созданный не более минуты назад
@@ -402,7 +402,7 @@ def progress(all_blocks):
         fill_thread2.target = uploaded
         fill_thread2.start()
 
-        print(f'Загружено {round(100 * callback.blocks_uploaded / all_blocks)} %')
+        #print(f'Загружено {round(100 * callback.blocks_uploaded / all_blocks)} %')
 
     callback.blocks_uploaded = 0
     callback.uploaded = 0
@@ -779,36 +779,42 @@ class CurrentPost():
 
     def lets_post(self, check_box_dict):
         places_for_post = sw.select_places_for_thread(self.thread_id)
+        lucky_posts = 0
+        thread_id = 0
         for elem in places_for_post:
             info_for_login = sw.search_data_for_login(elem[1])
             checkbox_name = check_box_dict[info_for_login[0][1] + ': ' + elem[5]]
             obj = getattr(form, checkbox_name)
 
             if obj.isChecked():  # Work with checked box only!
-                print(elem[3])  # печатаем URL, далее вызываем функцию поста
-                print(elem)
-                print(info_for_login)
+                # print(elem[3])  # печатаем URL, далее вызываем функцию поста
+                # print(elem)
+                #
+                # print(info_for_login)
                 print('Название места куда постим:', info_for_login[0][1])
 
                 # img_upload.login_on_place(elem[3], self.body_post, info_for_login)  # РАБОЧИЙ ВЫЗОВ ФУНКЦИИ ЛОГИНА-ПОСТА!
                 post = img_upload.LoginAndPosting(elem[3], self.body_post, info_for_login)
-                print(post)
                 edit_post_url = post.connect_to()
 
                 if post.check_adding_new_post(self.zip_url):
                     print(f'++++++  Новый пост на {info_for_login[0][1]} найден успешно! ++++++')
                     if sw.insert_forum_post(elem[1], self.thread_id, self.post_id, self.zip_id, edit_post_url):
-                        sw.starting_id(elem[2], '20')
+                        lucky_posts += 1
+                        thread_id = elem[2]
                         print('запись о новом посте в БД совершена успешно!')
                 else:
                     print(f'------  Пост на {info_for_login[0][1]} найти не удалось! ------')
+        print(f'Всего: успешно размещено {lucky_posts} постов из {len(check_box_dict)}.')
+        if lucky_posts > 0:
+            sw.starting_id(thread_id, '20')
 
     def make_body(self):
 
         if 'vd_' in self.folder_name:
-            self.body_post = 'Femdom: ' + self.post_name
+            self.body_post = 'Video: ' + self.post_name
             self.body_post = self.body_post + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
-            print(self.body_post)
+            # print(self.body_post)
 
         else:
             if self.date.strip() != '':
@@ -818,11 +824,11 @@ class CurrentPost():
 
             self.body_post = 'Set: ' + self.post_name + '\nPics, archive size: ' + self.size_and_quality
             self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
-            print(self.body_post)
+            # print(self.body_post)
 
 
 def send_post():
-    print('словарь чекблксов:', checkbox_dict)
+
     current_post = CurrentPost()
     current_post.make_body()
     current_post.lets_post(checkbox_dict)

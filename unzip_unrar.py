@@ -36,7 +36,7 @@ def unpack_zip(path, file_name):
         z.extractall(os.path.join(path, file_name[0:-4]))
     z.close()
 
-    time.sleep(0.2)
+    time.sleep(0.05)
     print("Удаляю " + os.path.join(path, file_name))
     try:
         os.remove(os.path.join(path, file_name))
@@ -56,7 +56,7 @@ def pack_and_del(path):
                 if ".zip" not in file_name:
                     temp_file_name = os.path.join(path, file_name)
                     myzip.write(temp_file_name, file_name)
-                    time.sleep(0.02)
+                    time.sleep(0.01)
 
     return arc_file
 

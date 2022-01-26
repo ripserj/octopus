@@ -98,7 +98,6 @@ def upload_img(elem, path, max_th_size=300):
     headers = {}
 
     response = requests.request("POST", url, data=payload, files=files)
-
     to_python = json.loads(response.text)
     return to_python
 
@@ -121,7 +120,7 @@ def check_pics(path):
     for file_name in os.listdir(path):
         file_low = file_name.lower()
         if ".jpg" not in file_low and ".gif" not in file_low and ".jpeg" not in file_low and ".png" not in file_low:
-            time.sleep(0.1)
+            time.sleep(0.02)
             os.remove(os.path.join(path, file_name))
 
 
@@ -165,7 +164,7 @@ def select_and_send_pics(path):
             otbor = all_pics_vert[0:9]
             make_text_links(otbor, variant=3)
         else:
-            print("НАДО МЕШАТЬ!")
+            # print("НАДО МЕШАТЬ!")
             if num_hor > num_vert:
 
                 random.shuffle(all_pics_hor)
@@ -228,7 +227,7 @@ class LoginAndPosting():
         for x in data[0][4].replace("'", "").split(','):
             y = x.split(':')
             data_new[y[0].strip()] = y[1].strip()
-        print('data_new:', data_new)
+        # print('data_new:', data_new)
         return data_new, data[0][2], int(data[0][7]), data[0][5]
 
     def find_last_post_vbb(self):
@@ -326,7 +325,7 @@ class LoginAndPosting():
         self.session = requests.Session()
         self.session.headers = self.headers
         if self.forum_type == 0:
-            print('Its vBulletin type forum!', self.url_for_post)
+            #print('Its vBulletin type forum!', self.url_for_post)
             response = self.session.post(self.login_url, data=self.auth)
             self.dice_roll_and_sleep()
             r = self.session.get(self.url_for_post, headers=self.headers)
@@ -345,7 +344,7 @@ class LoginAndPosting():
             self.edit_post_url = self.find_last_post_vbb()
 
         elif self.forum_type == 1:
-            print('Its XenForo type forum!')
+            #print('Its XenForo type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
 
             token = self.get_tok(r.text, '_xfToken')
@@ -374,7 +373,7 @@ class LoginAndPosting():
             self.edit_post_url = self.find_last_post_xfr()
 
         elif self.forum_type == 2:
-            print('Its phpBB v3x type forum!')
+            #print('Its phpBB v3x type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
 
             token = self.get_tok(r.text, 'sid')
@@ -397,12 +396,12 @@ class LoginAndPosting():
                        'form_token': form_token, 'subject': subject,
                        }
             print(payload)
-            # response = self.session.post(self.url_for_post, data=payload, headers=self.headers)
+            response = self.session.post(self.url_for_post, data=payload, headers=self.headers)
             self.edit_post_url = self.find_last_post_phpbb()
 
 
         elif self.forum_type == 3:
-            print('Its SMF type forum!')
+            #print('Its SMF type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
             smf_session_id = r.text.split("hashLoginPassword(this, '")[1].split("'")[0]
             smf_random_input = r.text.split("<input type=\"hidden\" name=\"hash_passwrd\" value=\"\" />"
@@ -440,7 +439,7 @@ class LoginAndPosting():
             self.dice_roll_and_sleep()
             self.edit_post_url = self.find_last_post_smf()
 
-        if self.forum_type == 4:
+        elif self.forum_type == 4:
             print('Its phpBB 2.x type forum WITH Cookies!!!', self.url_for_post)
             print(self.login_url, self.auth)
             r = self.session.get(self.login_url, headers=self.headers)
@@ -477,6 +476,50 @@ class LoginAndPosting():
             f.close()
             self.dice_roll_and_sleep()
             self.edit_post_url = self.find_last_post_unknownbb(self.auth['username'])
+
+        elif self.forum_type == 5:
+            print('Its SMF v2.0.8 type forum!')
+            r = self.session.get(self.login_url, headers=self.headers)
+            smf_session_id = r.text.split("hashLoginPassword(this, '")[1].split("'")[0]
+            smf_random_input = r.text.split("hashLoginPassword(this, '")[1].split("\"")[0]
+
+            self.auth[smf_random_input] = smf_session_id
+            self.auth['hash_passwrd'] = smf_session_id
+            self.dice_roll_and_sleep()
+            response = self.session.post(self.login_url + '2', data=self.auth)
+            self.dice_roll_and_sleep()
+
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            seqnum = self.get_tok(r.text, 'seqnum')
+            additional_options = self.get_tok(r.text, 'additional_options')
+            last_msg = self.get_tok(r.text, 'last_msg')
+            message_mode = self.get_tok(r.text, 'message_mode')
+            subject = self.get_tok(r.text, 'subject')
+            topic = self.get_tok(r.text, 'topic')
+            smf_session_var = r.text.split("sSessionVar: '")[1].split("',")[0]
+            smf_session_id = r.text.split("sSessionId: '")[1].split("',")[0]
+
+            payload = {smf_random_input: smf_session_id,
+                       'seqnum': seqnum,
+                       'additional_options': additional_options,
+                       'last_msg': last_msg,
+                       'notify': '0',
+                       'message_mode': message_mode,
+                       'sel_color': '',
+                       'sel_size': '',
+                       'sel_face': '0',
+                       'icon': 'xx',
+                       'tags': '',
+                       'topic': topic,
+                       'subject': subject,
+                       'message': self.body_post,
+                       smf_session_var: smf_session_id,
+
+                       }
+
+            response = self.session.post(self.url_for_post.replace('post', 'post2'), data=payload, headers=self.headers)
+            self.dice_roll_and_sleep()
+            self.edit_post_url = self.find_last_post_smf()
 
         return self.edit_post_url
 

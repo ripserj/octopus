@@ -259,7 +259,6 @@ def select_info_from_post(folder):
     sql_select_query = """select * from post where work_folder = ?"""
     cur.execute(sql_select_query, (folder,))
     records = cur.fetchall()
-    print(records)
     return records
 
 def select_info_from_zip(zip_file):
@@ -307,8 +306,8 @@ def update_place_in_bd(name, login_url, inputs, userid, id, type_place):
 def save_place_thread(thread_id, place_id, link_url, place_type, description):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
-    cur.execute(sql_select_query, (thread_id, place_id,))
+    sql_select_query = """select * from forums_threads where threads = ? AND forums = ? AND type = ?"""
+    cur.execute(sql_select_query, (thread_id, place_id, place_type))
     records = cur.fetchall()
     if len(records) > 0:
         data_update = (link_url, place_type, description, place_id, thread_id)

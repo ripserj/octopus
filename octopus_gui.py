@@ -326,7 +326,7 @@ class Ui_MainWindow(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollArea_2.setObjectName("scrollArea_2")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 1296, 762))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 98, 28))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.verticalLayoutWidget_5 = QtWidgets.QWidget(self.scrollAreaWidgetContents_2)
         self.verticalLayoutWidget_5.setGeometry(QtCore.QRect(9, 39, 1281, 781))
@@ -861,6 +861,7 @@ class Ui_MainWindow(object):
         self.comboBox_4.addItem("")
         self.comboBox_4.addItem("")
         self.comboBox_4.addItem("")
+        self.comboBox_4.addItem("")
         self.formLayout_5.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.comboBox_4)
         self.groupBox_4 = QtWidgets.QGroupBox(self.tab_5)
         self.groupBox_4.setGeometry(QtCore.QRect(0, 0, 1341, 881))
@@ -1046,7 +1047,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(4)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -1208,6 +1209,7 @@ class Ui_MainWindow(object):
         self.comboBox_4.setItemText(2, _translate("MainWindow", "phpBB"))
         self.comboBox_4.setItemText(3, _translate("MainWindow", "SMF"))
         self.comboBox_4.setItemText(4, _translate("MainWindow", "UnknownBB"))
+        self.comboBox_4.setItemText(5, _translate("MainWindow", "SMF v2.0.8"))
         self.label_31.setText(_translate("MainWindow", "SELECT PLACE FOR EDIT:"))
         self.comboBox.setItemText(0, _translate("MainWindow", "Test"))
         self.label_32.setText(_translate("MainWindow", "or ADD NEW PLACE:"))
