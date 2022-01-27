@@ -411,8 +411,7 @@ def progress(all_blocks):
 
 def tab_load_data():
     ContentCheckAndUpload_instance.start()
-    # fill_thread.target = 10
-    # fill_thread.start()
+
 
 
 class DialogNewProject(QDialog, NewProjectDialog):
@@ -692,9 +691,7 @@ def view_info_from_cell(row):
         zip_url = sw.select_url_from_zip(zip_id)
         form.label_48.setText(zip_url[0])
 
-        print(thread_id)
         places_for_post = sw.select_places_for_thread(thread_id)
-        print("places_for_post:", places_for_post)
 
         place_names = []
         type_place_dict = dict()
@@ -705,7 +702,6 @@ def view_info_from_cell(row):
             type_place_dict[place_name] = elem[4]
 
         place_names.sort()
-        print('place_names:', place_names)
         counter = 0
         for elem in place_names:
             checkbox_name = 'checkBox_u' + str(counter)
@@ -720,7 +716,6 @@ def view_info_from_cell(row):
                 obj.setChecked(False)
             counter += 1
             checkbox_dict[elem] = checkbox_name
-        print('counter = ', counter)
         for x in range(counter, 29):  # Прячем лишние чекбоксы
             checkbox_name = 'checkBox_u' + str(x)
             obj = getattr(form, checkbox_name)
@@ -756,7 +751,6 @@ def view_cell(row, cell):
 def delete_thread_from_place():
     thread_id = form.comboBox_2.currentData()[0]
     place_id = form.comboBox_3.currentData()[0]
-    print(thread_id, place_id)
     sw.delete_tfp(thread_id, place_id)
     places_for_post_load(PROJECT_ID)
 
@@ -787,10 +781,6 @@ class CurrentPost():
             obj = getattr(form, checkbox_name)
 
             if obj.isChecked():  # Work with checked box only!
-                # print(elem[3])  # печатаем URL, далее вызываем функцию поста
-                # print(elem)
-                #
-                # print(info_for_login)
                 print('Название места куда постим:', info_for_login[0][1])
 
                 # img_upload.login_on_place(elem[3], self.body_post, info_for_login)  # РАБОЧИЙ ВЫЗОВ ФУНКЦИИ ЛОГИНА-ПОСТА!
@@ -814,7 +804,7 @@ class CurrentPost():
         if 'vd_' in self.folder_name:
             self.body_post = 'Video: ' + self.post_name
             self.body_post = self.body_post + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
-            # print(self.body_post)
+
 
         else:
             if self.date.strip() != '':
@@ -824,7 +814,6 @@ class CurrentPost():
 
             self.body_post = 'Set: ' + self.post_name + '\nPics, archive size: ' + self.size_and_quality
             self.body_post = self.body_post + '\n' + self.date + '\n' + self.pics_code + '\n [URL=' + self.zip_url + '][B]Download from ' + logins.FILE_HOST_NAME + '[/B][/URL]'
-            # print(self.body_post)
 
 
 def send_post():
@@ -846,7 +835,6 @@ def load_thread_data_for_edit():
     item = form.listWidget.item(itemNumber)
     thread_id = item.text().split('||')[0]
     data = sw.select_one_thread_from_threads(thread_id)
-    print(data)
     form.lineEdit_11.setText(data[0][1])
     form.lineEdit_12.setText(data[0][2])
     form.lineEdit_13.setText(str(data[0][3]))
