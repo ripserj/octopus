@@ -71,14 +71,12 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                     haystack = img_upload.login_host()
 
                     if zip_file in haystack:
-                        print('zip найден в ответе сервера')
                         soup = BeautifulSoup(haystack, features="html.parser")
 
                         for link in soup.find_all('a', {'title': zip_file}):
                             zip_link = link.get('href')
                             if zip_link:
-                                print(zip_link)
-                                print(zip_file)
+                                print(f'{zip_file} найден по ссылке: {zip_link}!')
                                 sw.insert_zip_link(zip_link, zip_file)
 
                         item = form.tableWidget.item(counter, 4)
@@ -105,16 +103,11 @@ class LinkThread(QThread):  # ЕЩЕ ОДИН ПОТОК ДЛЯ ПОИСКА С�
                     item.setText(str(post_info[0][10]) + ' pics,     ' + size + ' Mb')
                     item = form.tableWidget.item(counter, 3)
                     item.setText(str(zip_info[0][0]) + ',  ' + str(elem[0]) + ',  ' + str(post_info[0][0]))
-                    print('успешно!')
                 except:
                     print('не удалось обработать пост № ' + str(post_info[0][0]))
 
                 counter += 1
 
-            # elif uu.dir_exist(folder) and sw.check_thread_in_posts(folder):
-            #     print('Тред есть и постинг выполнен')
-            #     print('Обновляем счетчик starting_id')
-            #     sw.starting_id(elem[2], elem[3])
 
         if counter == 0 or zip_uploaded_yes == counter:
             form.checkBox_11.setChecked(False)
@@ -325,14 +318,11 @@ class ContentCheckAndUpload(QThread):
                         print('Невозможно прочитать файл upload-test.txt')
 
                     for elem in otbor:
-                        print(elem, path)
                         try:
                             to_python = img_upload.upload_img(elem, path)
                         except:
                             print('Загрузка картинок на файл-хост не удалась.')
                             break
-                        # print(to_python)
-                        print('загружаю ' + elem)
                         fill_thread.target += 7
                         fill_thread.start()
                         sw.img_in_base(elem, to_python['th_url'], to_python['show_url'], self.post_id)
@@ -344,12 +334,9 @@ class ContentCheckAndUpload(QThread):
                     sw.save_message(self.post_id, ut_text)
 
                 time.sleep(0.1)
-                print('Формируем архив')
                 file_name = uu.pack_and_del(path)
                 # проверка: в папке 1 zip с размером не менее 1Мб, созданный не более минуты назад
                 size = uu.check(path)
-                print(file_name, ' size= ', size)
-
                 fill_thread.target = 100
                 fill_thread.start()
 
@@ -359,7 +346,7 @@ class ContentCheckAndUpload(QThread):
                         ftp = FTP(logins.FTP_HOST)
                         response = ftp.login(logins.FTP_LOGIN, logins.FTP_PASS)
 
-                        print(response)
+                        print('Ответ FTP сервера:', response)
                         with open(file_name, 'rb') as f:
                             ftp.storbinary('STOR ' + os.path.split(file_name)[1], f, 262144, progress(size / 262144))
                         print("конец загрузки файла", file_name)
@@ -370,8 +357,6 @@ class ContentCheckAndUpload(QThread):
                     name = temp_name[len(temp_name) - 1]
                     zip_id = sw.zip_in_base(name, str(size))
                     sw.update_post_info(self.post_id, zip_id, quantity)
-
-
 
                 else:
                     print("Программа прервана, проверьте папку " + path)
@@ -402,7 +387,7 @@ def progress(all_blocks):
         fill_thread2.target = uploaded
         fill_thread2.start()
 
-        #print(f'Загружено {round(100 * callback.blocks_uploaded / all_blocks)} %')
+        # print(f'Загружено {round(100 * callback.blocks_uploaded / all_blocks)} %')
 
     callback.blocks_uploaded = 0
     callback.uploaded = 0
@@ -411,7 +396,6 @@ def progress(all_blocks):
 
 def tab_load_data():
     ContentCheckAndUpload_instance.start()
-
 
 
 class DialogNewProject(QDialog, NewProjectDialog):
@@ -591,15 +575,22 @@ def load_current_place():
 def load_current_place_thread():
     x = form.comboBox_2.currentData()
     y = form.comboBox_3.currentData()
+    z = form.comboBox_5.currentIndex()
     if isinstance(x, tuple) and isinstance(y, tuple):
-        if sw.select_current_place_thread(x[0], y[0]):
-            url_link, place_type, description = sw.select_current_place_thread(x[0], y[0])
+        if sw.select_current_place_thread(x[0], y[0], z):
+            url_link, place_type, description = sw.select_current_place_thread(x[0], y[0], z)
             form.lineEdit_17.setText(url_link)
             form.lineEdit_18.setText(description)
-            form.comboBox_5.setCurrentIndex(int(place_type))
+            if int(place_type) != z:
+                form.lineEdit_17.clear()
+                form.lineEdit_18.setText(x[1].replace(' ', '') + ' ' + 'Pics')
+            else:
+                form.comboBox_5.setCurrentIndex(int(place_type))
         else:
             form.lineEdit_17.clear()
-            form.lineEdit_18.clear()
+            form.lineEdit_18.setText(x[1].replace(' ', '') + ' ' + 'Pics')
+    elif isinstance(x, tuple):
+        form.lineEdit_18.setText(x[1].replace(' ', '') + ' ' + 'Pics')
 
 
 # СИГНАЛЫ В ПУНКТАХ МЕНЮ
@@ -631,6 +622,7 @@ form.comboBox.currentIndexChanged.connect(load_current_place)
 
 form.comboBox_2.currentIndexChanged.connect(load_current_place_thread)
 form.comboBox_3.currentIndexChanged.connect(load_current_place_thread)
+form.comboBox_5.currentIndexChanged.connect(load_current_place_thread)
 
 
 def save_place():
@@ -744,7 +736,6 @@ def view_cell(row, cell):
         checkbox_dict = view_info_from_cell(row)
     except:
         pass
-    print('вернулся словарь: ', checkbox_dict)
     return checkbox_dict
 
 
@@ -788,13 +779,18 @@ class CurrentPost():
                 edit_post_url = post.connect_to()
 
                 if post.check_adding_new_post(self.zip_url):
-                    print(f'++++++  Новый пост на {info_for_login[0][1]} найден успешно! ++++++')
+                    good_news = f'++++++  Новый пост на {info_for_login[0][1]} найден успешно! ++++++'
+                    print(good_news)
+                    form.textEdit_4.setText(form.textEdit_4.toPlainText() + good_news)
                     if sw.insert_forum_post(elem[1], self.thread_id, self.post_id, self.zip_id, edit_post_url):
                         lucky_posts += 1
                         thread_id = elem[2]
                         print('запись о новом посте в БД совершена успешно!')
+                    obj.setCheckState(QtCore.Qt.Unchecked)
                 else:
-                    print(f'------  Пост на {info_for_login[0][1]} найти не удалось! ------')
+                    bad_news = f'------  Пост на {info_for_login[0][1]} найти не удалось! ------'
+                    print(bad_news)
+                    form.textEdit_4.setText(form.textEdit_4.toPlainText() + bad_news)
         print(f'Всего: успешно размещено {lucky_posts} постов из {len(check_box_dict)}.')
         if lucky_posts > 0:
             sw.starting_id(thread_id, '20')
@@ -817,7 +813,6 @@ class CurrentPost():
 
 
 def send_post():
-
     current_post = CurrentPost()
     current_post.make_body()
     current_post.lets_post(checkbox_dict)

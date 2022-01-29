@@ -213,7 +213,7 @@ class LoginAndPosting():
         }
 
     def dice_roll_and_sleep(self):
-        time.sleep(randint(50, 250) * 0.01)
+        time.sleep(randint(50, 150) * 0.01)
 
     def get_tok(self, text, token):
         soup = BeautifulSoup(text, features="html.parser")
@@ -243,6 +243,20 @@ class LoginAndPosting():
             edit_url = None
         return edit_url
 
+    def find_last_post_vbbmods(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('login')
+            search_url = split_url[0] + 'members/' + self.user_id + '.html'
+            # print(search_url)
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('#post')[1].split('"')[0]
+            edit_url = split_url[0] + 'editpost.php?do=editpost&p=' + position_temp
+            # print(edit_url)
+        except:
+            edit_url = None
+        return edit_url
+
     def find_last_post_xfr(self):
         self.dice_roll_and_sleep()
         try:
@@ -254,7 +268,7 @@ class LoginAndPosting():
             edit_url = split_url[0] + 'posts/' + position_temp2[0] + '/edit'
         except:
             edit_url = None
-        print(edit_url)
+        # print(edit_url)
         return edit_url
 
     def find_last_post_phpbb(self):
@@ -266,10 +280,10 @@ class LoginAndPosting():
             position_temp = r.text.split('#p')
             position_temp2 = position_temp[1].split('"')
             position_temp3 = position_temp[0].split('.php?')
-            print('СМ сюда')
-            print(position_temp3[len(position_temp3) - 1])
+            # print('СМ сюда')
+            # print(position_temp3[len(position_temp3) - 1])
             position_temp4 = position_temp3[len(position_temp3) - 1].split('&')
-            print(position_temp4[0])
+            # print(position_temp4[0])
             edit_url = split_url[0] + 'posting.php?mode=edit&' + position_temp4[0] + '&p=' + position_temp2[0]
         except:
             edit_url = None
@@ -283,16 +297,34 @@ class LoginAndPosting():
             r = self.session.get(search_url, headers=self.headers)
             position_temp = r.text.split('#msg')
             position_temp2 = position_temp[1].split('"')
-            print(position_temp2[0])  # номер поста
+            # print(position_temp2[0])  # номер поста
             position_temp3 = position_temp[0].split('topic=')
             position_temp4 = position_temp3[len(position_temp3) - 1].split('.')
-            print(position_temp4[0])  # номер топика
+            # print(position_temp4[0])  # номер топика
 
             edit_url = split_url[0] + 'index.php?action=post;msg=' + position_temp2[0] + ';topic=' + position_temp4[0]
         except:
             edit_url = None
-        print(edit_url)
+        # print(edit_url)
         return edit_url
+
+    def find_last_post_smf2(self):
+        self.dice_roll_and_sleep()
+        try:
+            split_url = self.login_url.split('index.php')
+            search_url = split_url[0] + 'index.php?action=profile;area=showposts;u=' + self.user_id
+            r = self.session.get(search_url, headers=self.headers)
+            position_temp = r.text.split('#msg')
+            position_temp2 = position_temp[1].split('"')[0]
+            # print(position_temp2)  # номер поста
+            topic_search = r.text.split('/topic,')[1].split('.')[0]
+            # print(topic_search)  # номер топика
+            edit_url = split_url[0] + 'index.php?action=post;msg=' + position_temp2 + ';topic=' + topic_search
+        except:
+            edit_url = None
+        # print(edit_url)
+        return edit_url
+
 
     def find_last_post_unknownbb(self, username):
         self.dice_roll_and_sleep()
@@ -300,7 +332,7 @@ class LoginAndPosting():
             split_url = self.login_url.split('login')
 
             search_url = split_url[0] + 'userposts-' + username
-            print(search_url)
+            # print(search_url)
             r = self.session.get(search_url, headers=self.headers)
             position_temp = r.text.split('highlight=#')
             position_temp2 = position_temp[1].split('"')
@@ -395,7 +427,7 @@ class LoginAndPosting():
                        'creation_time': creation_time, 'message': self.body_post,
                        'form_token': form_token, 'subject': subject,
                        }
-            print(payload)
+            # print(payload)
             response = self.session.post(self.url_for_post, data=payload, headers=self.headers)
             self.edit_post_url = self.find_last_post_phpbb()
 
@@ -440,19 +472,19 @@ class LoginAndPosting():
             self.edit_post_url = self.find_last_post_smf()
 
         elif self.forum_type == 4:
-            print('Its phpBB 2.x type forum WITH Cookies!!!', self.url_for_post)
-            print(self.login_url, self.auth)
+            # print('Its phpBB 2.x type forum WITH Cookies!!!', self.url_for_post)
+            # print(self.login_url, self.auth)
             r = self.session.get(self.login_url, headers=self.headers)
             pbb_sid = r.cookies[self.auth['cookie']]
             self.dice_roll_and_sleep()
-            print(self.login_url+"?sid=" + pbb_sid)
-            print(self.auth)
+            # print(self.login_url+"?sid=" + pbb_sid)
+            # print(self.auth)
 
             response = self.session.post(self.login_url+"?sid=" + pbb_sid, data=self.auth, cookies=r.cookies)
             self.dice_roll_and_sleep()
-            with open('test2.html', 'w', encoding="utf-8") as f:
-                f.write(response.text)
-            f.close()
+            # with open('test2.html', 'w', encoding="utf-8") as f:
+            #     f.write(response.text)
+            # f.close()
             r = self.session.get(self.url_for_post, headers=self.headers)
             sid = self.get_tok(r.text, 'sid')
             t = self.get_tok(r.text, 't')
@@ -471,14 +503,14 @@ class LoginAndPosting():
             self.dice_roll_and_sleep()
             response = self.session.post(self.url_for_post, data=payload,
                                          headers=self.headers)  # Временно заблокировал постинг
-            with open('test1.html', 'w', encoding="utf-8") as f:
-                f.write(response.text)
-            f.close()
+            # with open('test1.html', 'w', encoding="utf-8") as f:
+            #     f.write(response.text)
+            # f.close()
             self.dice_roll_and_sleep()
             self.edit_post_url = self.find_last_post_unknownbb(self.auth['username'])
 
         elif self.forum_type == 5:
-            print('Its SMF v2.0.8 type forum!')
+            # print('Its SMF v2.0.8 type forum!')
             r = self.session.get(self.login_url, headers=self.headers)
             smf_session_id = r.text.split("hashLoginPassword(this, '")[1].split("'")[0]
             smf_random_input = r.text.split("hashLoginPassword(this, '")[1].split("\"")[0]
@@ -519,7 +551,26 @@ class LoginAndPosting():
 
             response = self.session.post(self.url_for_post.replace('post', 'post2'), data=payload, headers=self.headers)
             self.dice_roll_and_sleep()
-            self.edit_post_url = self.find_last_post_smf()
+            self.edit_post_url = self.find_last_post_smf2()
+
+        if self.forum_type == 6:
+            #print('Its vBulletin type forum!', self.url_for_post)
+            response = self.session.post(self.login_url, data=self.auth)
+            self.dice_roll_and_sleep()
+            r = self.session.get(self.url_for_post, headers=self.headers)
+            token = self.get_tok(r.text, 'securitytoken')
+            post_id = ''
+            if 'p=' in self.url_for_post:
+                post_num = self.url_for_post.split('p=')
+                post_id = post_num[1]
+
+            payload = {'securitytoken': token, 's': '', 'do': 'postreply', 't': '', 'p': post_id,
+                       'specifiedpost': '0', 'posthash': '', 'poststarttime': '', 'loggedinuser': self.user_id,
+                       'multiquoteempty': '', 'wysiwyg': '0', 'message': self.body_post}
+            response = self.session.post(self.url_for_post, data=payload,
+                                         headers=self.headers)  # Временно заблокировал постинг
+            self.dice_roll_and_sleep()
+            self.edit_post_url = self.find_last_post_vbbmods()
 
         return self.edit_post_url
 

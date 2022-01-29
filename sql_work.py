@@ -189,8 +189,8 @@ def insert_forum_post(forum_id, thread_id, post_id, zip_id, edit_post_url):
     connn = sqlite3.connect('links.db')
     curr = connn.cursor()
     data_insert = (forum_id, thread_id, post_id, zip_id, edit_post_url)
-    sqlite_param = """INSERT INTO forums_posts(forum_id, thread_id, post_id, zip_id, edit_post_url)
-       VALUES(?, ?, ?, ?, ?);"""
+    sqlite_param = """INSERT INTO forums_posts(forum_id, thread_id, post_id, zip_id, edit_post_url, post_date)
+       VALUES(?, ?, ?, ?, ?, CURRENT_TIMESTAMP);"""
     curr.execute(sqlite_param, data_insert)
     last_id = curr.lastrowid
     connn.commit()
@@ -324,11 +324,11 @@ def save_place_thread(thread_id, place_id, link_url, place_type, description):
         conn.commit()
         return last_id
 
-def select_current_place_thread(thread_id, place_id):
+def select_current_place_thread(thread_id, place_id, type):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    sql_select_query = """select * from forums_threads where threads = ? AND forums = ?"""
-    cur.execute(sql_select_query, (thread_id, place_id,))
+    sql_select_query = """select * from forums_threads where threads = ? AND forums = ? AND type = ?"""
+    cur.execute(sql_select_query, (thread_id, place_id, type))
     records = cur.fetchall()
     if len(records) > 0:
         return records[0][3], records[0][4], records[0][5]
