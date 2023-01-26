@@ -31,18 +31,27 @@ def upload_txt(file_txt, header):
         f.write(pics_block)
 
 
-def unpack_zip(path, file_name):
+def unpack_zip(path, file_name, delet=True):
+    print('Отладка2:', os.path.join(path, file_name[0:-4]))
+
+
     with zipfile.ZipFile(os.path.join(path, file_name), 'r') as z:
         z.extractall(os.path.join(path, file_name[0:-4]))
     z.close()
-
-    time.sleep(0.05)
-    print("Удаляю " + os.path.join(path, file_name))
-    try:
-        os.remove(os.path.join(path, file_name))
-    except:
-        print('Не удалилось!')
-        exit()
+    if delet:
+        time.sleep(0.01)
+        print("Удаляю " + os.path.join(path, file_name))
+        try:
+            os.remove(os.path.join(path, file_name))
+        except:
+            print('Не удалилось!')
+            exit()
+    else:
+        arr_files = []
+        for root, dirs, files in os.walk(os.path.join(path, file_name[0:-4])):  # Список всех файлов и папок в директории folder
+            for elem in files:
+                arr_files.append(elem)
+        return arr_files
 
     return os.path.join(path)
 
@@ -73,3 +82,17 @@ def check(path):
     else:
         print("Архива с верным именем НЕ ОБНАРУЖЕНО!")
         exit()
+
+def search_zip(filename):
+    path = "W://"
+    print(os.listdir(path))
+    print(filename)
+    if filename in os.listdir(path):
+        elem_path = os.path.join(path, filename)
+        size = os.path.getsize(elem_path)
+        size = round(size / 1048576, 1)
+        print(f'Архив с именем {filename} найден, размер - {size}Mb')
+        return size
+    else:
+        print("Архива с верным именем НЕ ОБНАРУЖЕНО!")
+        return False

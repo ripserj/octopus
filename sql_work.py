@@ -33,12 +33,40 @@ cur.execute("""CREATE TABLE IF NOT EXISTS projects(
    """)
 conn.commit()
 
+
+def update_places_for_post(post_id, places_for_post):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (places_for_post, post_id)
+    sqlite_param = """Update post set places_for_post = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
+
+def update_post_data_hash(post_id, body_post):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (body_post, post_id)
+    sqlite_param = """Update post set data_hash = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
 def update_post_info(post_id, zip_id, quantity):
 
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     data_update = (quantity, zip_id, post_id)
     sqlite_param = """Update post set pics_quantity = ?, zip_id = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+def save_img_sheme(post_id, ut_text):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (ut_text, post_id)
+    sqlite_param = """Update post set img_sheme = ? where postid = ?"""
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
@@ -50,12 +78,20 @@ def starting_id(thread_id, project_id):
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
-
-def update_thread(thread_id, name, prefix, starting_id, content_type):
+def update_post_name(post_id, post_name):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
-    data_update = (name, prefix, starting_id, content_type, thread_id)
-    sqlite_param = """Update threads set name = ?, prefix = ?, starting_id = ?, content_type = ? where thread_id = ?"""
+    data_update = (post_name, post_id)
+    sqlite_param = """Update post set post_name = ? where postid = ?"""
+    cur.execute(sqlite_param, data_update)
+    conn.commit()
+
+
+def update_thread(thread_id, name, prefix, starting_id, content_type, patm):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    data_update = (name, prefix, starting_id, content_type, patm, thread_id)
+    sqlite_param = """Update threads set name = ?, prefix = ?, starting_id = ?, content_type = ?, patm = ? where thread_id = ?"""
     cur.execute(sqlite_param, data_update)
     conn.commit()
 
@@ -134,10 +170,10 @@ def check_new_project_name(new_project_name):
     else:
         return True
 
-def new_thread(name, prefix, starting_id, project_id, content_type):
-    data_insert = (name, prefix, starting_id, project_id, content_type)
-    sqlite_param = """INSERT INTO threads(name, prefix, starting_id, project_id, content_type) 
-       VALUES(?, ?, ?, ?, ?);"""
+def new_thread(name, prefix, starting_id, project_id, content_type, patm):
+    data_insert = (name, prefix, starting_id, project_id, content_type, patm)
+    sqlite_param = """INSERT INTO threads(name, prefix, starting_id, project_id, content_type, patm) 
+       VALUES(?, ?, ?, ?, ?, ?);"""
     cur.execute(sqlite_param, data_insert)
     conn.commit()
     return True
@@ -196,7 +232,28 @@ def insert_forum_post(forum_id, thread_id, post_id, zip_id, edit_post_url):
     connn.commit()
     return last_id
 
+def select_dead_planet(post_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select edit_post_url from forums_posts where forum_id = 22 and post_id = ?"""
+    cur.execute(sql_select_query, (post_id,))
+    records = cur.fetchall()
+    if len(records) > 0:
+        return records[0]
+    else:
+        return False
 
+
+def select_data_hash(post_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select data_hash from post where postid = ?"""
+    cur.execute(sql_select_query, (post_id,))
+    records = cur.fetchall()
+    if len(records) > 0:
+        return records[0]
+    else:
+        return False
 
 def work_folder_in_base(folder):
     conn = sqlite3.connect('links.db')
@@ -252,6 +309,29 @@ def select_folders_in_current_project():
     records = cur.fetchall()
     return records
 
+def select_prepared_from_post(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select data_hash from post where work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    if records:
+        return records[0]
+    else:
+        return False
+
+
+def select_prepared_places(folder):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select places_for_post, postid, thread_id from post where work_folder = ?"""
+    cur.execute(sql_select_query, (folder,))
+    records = cur.fetchall()
+    if records and records[0][0]:
+        return records[0]
+    else:
+        return False
+
 
 def select_info_from_post(folder):
     conn = sqlite3.connect('links.db')
@@ -276,6 +356,15 @@ def select_url_from_zip(zip_id):
     cur.execute(sql_select_query, (zip_id,))
     records = cur.fetchone()
     return records
+
+def select_url_from_zip2(post_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select link from zips where zipid = (select zip_id from post where postid = ?)"""
+    cur.execute(sql_select_query, (post_id,))
+    records = cur.fetchone()
+    return records[0]
+
 
 
 def select_data_from_forums(project_id):
@@ -343,12 +432,17 @@ def select_places_for_thread(thread_id):
     records = cur.fetchall()
     return records
 
+
+
+
 def select_name_from_places(id):
     conn = sqlite3.connect('links.db')
     cur = conn.cursor()
     sql_select_query = """select name from forums where id = ? order by name"""
     cur.execute(sql_select_query, (id,))
     records = cur.fetchone()
+
+
 
     return records
 
@@ -359,3 +453,42 @@ def delete_tfp(thread_id, place_id):
     cur.execute(sql_select_query, (thread_id, place_id,))
     conn.commit()
     cur.close()
+
+def search_last_post_datetime():
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select post_date from forums_posts order by post_date DESC LIMIT 1"""
+    cur.execute(sql_select_query)
+    records = cur.fetchone()
+    return records
+
+def search_last_post_name(id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select post_name from post where thread_id = ? order by postid DESC LIMIT 1"""
+    cur.execute(sql_select_query, (id,))
+    records = cur.fetchone()
+    if records is None or records[0] is None:
+        return None
+    else:
+        return records[0]
+
+def get_img_sheme(post_id):
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select img_sheme from post where postid = ?"""
+    cur.execute(sql_select_query, (post_id,))
+    records = cur.fetchone()
+    if records is None or records[0] is None:
+        return None
+    else:
+        return records[0]
+
+def select_all_for_check_from_zip():
+    conn = sqlite3.connect('links.db')
+    cur = conn.cursor()
+    sql_select_query = """select * from zips where time_check is NULL OR time_check < (CURRENT_TIMESTAMP - 3600*5*24)"""
+    cur.execute(sql_select_query)
+    records = cur.fetchall()
+    return records
+

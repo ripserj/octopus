@@ -1,4 +1,4 @@
-import os
+import os, stat
 import random
 import shutil
 import time
@@ -16,12 +16,24 @@ from logins import ROOT_DIR, YEAR_IN_THE_PAST, BACKUP_DIR
 
 now = datetime.datetime.now()
 
+def load_imgtwist(data):
+    file_path = os.path.join(ROOT_DIR, "imagetwist_links.txt")
+    with open(file_path, 'w') as f:
+        f.write(data)
+def check_imagetwist_links():
+    return os.path.exists(os.path.join(ROOT_DIR, "imagetwist_links.txt"))
+
+def remove_readonly(func, path, _):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 def reset_data():
     print('Clear data in ', ROOT_DIR)
     if os.path.isdir(ROOT_DIR):
-        shutil.rmtree(ROOT_DIR)
-    time.sleep(0.05)
+        shutil.rmtree(ROOT_DIR, onerror=remove_readonly)
+    time.sleep(1)
+    print('Clear complite!')
+    print('Create new folders...')
     if not os.path.isdir(ROOT_DIR):
         os.mkdir(ROOT_DIR)
         folders_in_project = sw.select_folders_in_current_project()
@@ -29,6 +41,15 @@ def reset_data():
             full_path = os.path.join(ROOT_DIR, elem[0] + str(elem[1]))
             os.mkdir(full_path)
     print('Working folder update.....SUCCESS!')
+
+
+def backuping(source_dir):
+    full_path = os.path.join(ROOT_DIR, source_dir)
+    for root, dirs, files in os.walk(full_path):
+        for elem in files:  # ищем архив и переносим его в корень
+            if source_dir in elem:
+                source_file = os.path.join(full_path, elem)
+                shutil.copy(source_file, BACKUP_DIR)
 
 
 
@@ -181,7 +202,7 @@ def check_and_rename(current_dir):
             # jpg_path = os.path.join(folder, current_dir + "_scr.jpg")
             # new_im.save(jpg_path)
 
-    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}х{height}', f'{fps}', f'{size} Mb', folder, elem, images, new_file, size_in_bts, pics_in_row
+    return type_of_file, f'{hours}:{minutes}:{seconds}', f'{width}x{height}', f'{fps}', f'{size} Mb', folder, elem, images, new_file, size_in_bts, pics_in_row
 
 
 # params = []
@@ -194,6 +215,8 @@ def rename_files(path, file_name, zip=0):
     date_from_pic_info_set = []
     date_from_file_info_set = []
     some_file_names = []
+
+
     for path_files, directories, files in os.walk(path):
         files.sort()
         counter = 0
@@ -203,8 +226,11 @@ def rename_files(path, file_name, zip=0):
             some_file_names.append(file)
             current_file_name = os.path.join(path_files, file)
             expansion = file.split(".")
-            new_file_name = "2_" + str(counter) + "." + expansion[1]
+
+            new_file_name = "2_" + str(counter) + "." + expansion[-1]
+
             destination_file_name = os.path.join(path, new_file_name)
+
             if '.jpg' in current_file_name.lower():
 
                 if zip == 0:
@@ -233,9 +259,11 @@ def rename_files(path, file_name, zip=0):
                     except:
                         pass
 
-            time.sleep(0.01)
+            time.sleep(0.005)
             os.rename(current_file_name, destination_file_name)
-            time.sleep(0.01)
+            time.sleep(0.005)
+
+
     date_from_pic_info_set.sort()
     date_from_file_info_set.sort()
     returned_date_from_pic_info = ''
@@ -259,10 +287,11 @@ def rename_files(path, file_name, zip=0):
 
         # print(f"ДАТА НАЙДЕНАЯ В ИНФО-ФАЙЛОВ  - {returned_date_from_file_info}")
 
-    time.sleep(0.01)
+    time.sleep(0.005)
     delete_path = os.path.join(path, file_name)
-    time.sleep(0.01)
+    time.sleep(0.005)
     shutil.rmtree(delete_path)
+
     return returned_date_from_pic_info, returned_date_from_file_info, some_file_names
 
 
@@ -294,26 +323,24 @@ def unpack(path):
             print('Есть zip архив. Попытка вытащить даты из файлов архива...', os.path.join(path, file_name))
             date_from_file_info = get_date_from_zip(os.path.join(path, file_name))
             print(f"ФАЙЛЫ ВНУТРИ АРХИВА ИМЕЮТ ДАТУ: {date_from_file_info}")
-
+            print('отладка:', file_name)
             print('Есть zip архив. Приступаю к распаковке...', os.path.join(path, file_name))
 
             path = uu.unpack_zip(os.path.join(path), file_name)
 
             file_name = file_name[0:-4]
+            print(file_name)
             print('Распаковка завершена...')
 
             print("Архив удален, проверяю наличие вложенных папок...")
+
             photo_date, file_date, file_names = rename_files(path, file_name, zip=1)
             file_date = date_from_file_info
-            # num_of_pics = img_upload.select_and_send_pics(path)
 
         else:
-
             print("Архивов в папке нет, проверяю наличие вложенных папок...")
-            print(path, file_name)
-
             photo_date, file_date, file_names = rename_files(path, file_name)
-            # num_of_pics = img_upload.select_and_send_pics(path)
+
 
     return photo_date, file_date, file_names
 
